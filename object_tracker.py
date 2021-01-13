@@ -45,8 +45,8 @@ def main(_argv):
     nms_max_overlap = 1.0
     
     # initialize deep sort
-    model_filename = 'model_data/camstroke-latest.pb'
-    encoder = gdet.create_box_encoder(model_filename, batch_size=1)
+    model_filename = 'model_data/camstroke_latest.pb'
+    encoder = gdet.create_box_encoder(model_filename, input_name="inputs", batch_size=1)
     # calculate cosine distance metric
     metric = nn_matching.NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
     # initialize tracker
