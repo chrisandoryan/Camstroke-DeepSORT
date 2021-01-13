@@ -5,6 +5,9 @@ import argparse
 import numpy as np
 import cv2
 import tensorflow.compat.v1 as tf
+from tensorflow.python.platform import gfile
+from tensorflow.core.protobuf import saved_model_pb2
+from tensorflow.python.util import compat
 
 #tf.compat.v1.disable_eager_execution()
 
@@ -78,10 +81,20 @@ class ImageEncoder(object):
     def __init__(self, checkpoint_filename, input_name="images",
                  output_name="features"):
         self.session = tf.Session()
-        with tf.gfile.GFile(checkpoint_filename, "rb") as file_handle:
-            graph_def = tf.GraphDef()
-            graph_def.ParseFromString(file_handle.read())
-        tf.import_graph_def(graph_def, name="net")
+
+        # Modified Code to fix Protobuf Parse Error
+        with tf.gfile.FastGFile(checkpoint_filename, 'rb') as f:
+            data = compat.as_bytes(f.read())
+            sm = saved_model_pb2.SavedModel()
+            sm.ParseFromString(data)
+        tf.import_graph_def(sm.meta_graphs[0].graph_def, name="net")
+        
+        # Original Code
+        # with tf.gfile.GFile(checkpoint_filename, "rb") as file_handle:
+        #     graph_def = tf.GraphDef()
+        #     graph_def.ParseFromString(file_handle.read())
+        # tf.import_graph_def(graph_def, name="net")
+
         self.input_var = tf.get_default_graph().get_tensor_by_name(
             "%s:0" % input_name)
         self.output_var = tf.get_default_graph().get_tensor_by_name(
