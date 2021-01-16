@@ -83,17 +83,17 @@ class ImageEncoder(object):
         self.session = tf.Session()
 
         # Modified Code to fix Protobuf Parse Error
-        with tf.gfile.FastGFile(checkpoint_filename, 'rb') as f:
-            data = compat.as_bytes(f.read())
-            sm = saved_model_pb2.SavedModel()
-            sm.ParseFromString(data)
-        tf.import_graph_def(sm.meta_graphs[0].graph_def, name="net")
+        # with tf.gfile.FastGFile(checkpoint_filename, 'rb') as f:
+        #     data = compat.as_bytes(f.read())
+        #     sm = saved_model_pb2.SavedModel()
+        #     sm.ParseFromString(data)
+        # tf.import_graph_def(sm.meta_graphs[0].graph_def, name="net")
         
         # Original Code
-        # with tf.gfile.GFile(checkpoint_filename, "rb") as file_handle:
-        #     graph_def = tf.GraphDef()
-        #     graph_def.ParseFromString(file_handle.read())
-        # tf.import_graph_def(graph_def, name="net")
+        with tf.gfile.GFile(checkpoint_filename, "rb") as file_handle:
+            graph_def = tf.GraphDef()
+            graph_def.ParseFromString(file_handle.read())
+        tf.import_graph_def(graph_def, name="net")
 
         self.input_var = tf.get_default_graph().get_tensor_by_name(
             "%s:0" % input_name)
