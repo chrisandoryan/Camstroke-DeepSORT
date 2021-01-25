@@ -55,6 +55,9 @@ def crop_keystroke(image, font_size, cursor_xmin, cursor_ymin, cursor_xmax, curs
     cropped = image.crop(crop_range)
     return cropped
 
+def do_ocr(im):
+    return pytesseract.image_to_string(im)
+
 class Camstroke:
     last_pos = (0, 0, 0, 0) # xmin, ymin, xmax, ymax
     recorded_fontsizes = []
@@ -77,8 +80,8 @@ def extract_keystrokes(video_path):
         camstroke.last_pos = (xmin, ymin, xmax, ymax)
         camstroke.recorded_fontsizes.append(font_size)
 
-        keystroke = crop_keystroke(im, camstroke.get_fontsize(), xmin, ymin, xmax, ymax)
-        keystroke.show()
+        keystroke_image = crop_keystroke(im, camstroke.get_fontsize(), xmin, ymin, xmax, ymax)
+        print("Detected: ", do_ocr(keystroke_image))
 
 
 # estimate font size from a video based on consensus, and return the estimated font size
