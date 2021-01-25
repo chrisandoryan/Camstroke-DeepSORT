@@ -213,6 +213,6 @@ def track_cursor(path_to_video, path_to_weight, input_size=416, framework='tf', 
                 result = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         
             # return the frame and the coordinate of Bounding Box for further processing
-            yield (frame, int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3]))
+            yield (frame, frame_num, int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3]))
 
     cv2.destroyAllWindows()
