@@ -21,6 +21,10 @@ FONT_SIZE_CONSENSUS = 100
 # path to weight for cursor tracker
 WEIGHT_PATH = "checkpoints/camstroke-yolov4-416"
 
+def normalize_bbox_size(xmin, ymin, xmax, ymax):
+    norm = 0.2
+    return (xmin + (xmin * norm), ymin, xmax - (xmax * norm), ymax)
+
 
 def pt_to_px(pt):
     return pt * PT2PX_SIZE_FACTOR
@@ -32,6 +36,7 @@ def px_to_inch(px, PPI):
 
 def get_cursor_height(cursor_ymax, cursor_ymin):
     return cursor_ymax - cursor_ymin
+
 
 # automatically detect the font size of the letter based on cursor size
 def calc_fontsize(cursor_ymax, cursor_ymin, PPI):
@@ -141,8 +146,8 @@ def extract_keystrokes(video_path):
 def loop_dataset():
     sizes = [14, 16, 18, 20, 22]
     for s in sizes:
-        video_path = "../Recordings/vscode_font{}.mp4".format(s)
-        # video_path = "data/video/vscode.mp4"
+        # video_path = "../Recordings/vscode_font{}.mp4".format(s)
+        video_path = "data/video/vscode.mp4"
         print("Extracting from {}".format(video_path))
         extract_keystrokes(video_path)
 
