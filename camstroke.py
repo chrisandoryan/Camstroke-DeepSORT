@@ -1,4 +1,5 @@
 import cursor_tracker
+import cursor_detector
 from PIL import Image
 import cv2
 import pytesseract
@@ -98,7 +99,7 @@ class Camstroke:
         return calc_average(self.recorded_fontsizes)
 
 # iterate through detected cursor while constantly estimating font size
-def extract_keystrokes(video_path):
+def extract_keystrokes_tracker(video_path):
     camstroke = Camstroke()
 
     vwidth, vheight = get_video_size(video_path)
@@ -118,30 +119,15 @@ def extract_keystrokes(video_path):
         keystroke_image.save(fp="results/{}.png".format(frame_num))
         # print("Detected: ", ocr)
 
-
-# estimate font size from a video based on consensus, and return the estimated font size
-# def estimate_fontsize(video_path):
-#     vwidth, vheight = get_video_size(video_path)
-#     PPI = calc_ppi(vwidth, vheight, screen_size_inch=13.3)
-#     font_sizes = []
-#     for i, tracked in enumerate(cursor_tracker.track_cursor(video_path, WEIGHT_PATH, draw_bbox=True)):
-#         if i == FONT_SIZE_CONSENSUS:
-#             break
-#         frame, frame_num, xmin, ymin, xmax, ymax = tracked
-#         _ = Image.fromarray(frame)
-#         # image.show()
-#         font_size = calc_fontsize(ymax, ymin, PPI)
-#         print("Cursor Height #%s: %s" % (i, get_cursor_height(ymax, ymin)))
-#         print("Font Size #%s: %s" % (i, font_size))
-#         font_sizes.append(font_size)
-#         cropped = isolate_keystroke(frame, font_size, xmin, ymin, xmax, ymax, crop=True)
-#         cropped.show()
-#     print("Video Path: ", video_path)
-#     print("Screen PPI: ", PPI)
-#     est_font_size = calc_average(font_sizes)
-#     print("Average Font Size: ", est_font_size)
-#     return est_font_size
-
+def extract_keystrokes_detector(video_path):
+    for i, detected in enumerate(cursor_detector.detect_cursor(video_path, WEIGHT_PATH, score_threshold=0.65)):
+        frame, frame_id, pred_result = detected
+        boxes, scores, classes, valid_detections = pred_result
+        if valid_detections[0] > 0:
+            for i in range(valid_detections[0]):
+                print("Detected #%s" % i)
+                print("Boxes: ", boxes[0][i])
+                print("Scores:", scores[0][i])
 
 def loop_dataset():
     sizes = [14, 16, 18, 20, 22]
@@ -149,7 +135,7 @@ def loop_dataset():
         # video_path = "../Recordings/vscode_font{}.mp4".format(s)
         video_path = "data/video/vscode.mp4"
         print("Extracting from {}".format(video_path))
-        extract_keystrokes(video_path)
+        extract_keystrokes_detector(video_path)
 
 
 loop_dataset()

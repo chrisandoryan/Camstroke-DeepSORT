@@ -100,7 +100,7 @@ def track_cursor(path_to_video, path_to_weight, input_size=416, framework='tf', 
             interpreter.invoke()
             pred = [interpreter.get_tensor(output_details[i]['index']) for i in range(len(output_details))]
             # run detections using yolov3 if flag is set
-            if model == 'yolov3' and tiny == True:
+            if model == 'yolov3':
                 boxes, pred_conf = filter_boxes(pred[1], pred[0], score_threshold=0.25, input_shape=tf.constant([input_size, input_size]))
             else:
                 boxes, pred_conf = filter_boxes(pred[0], pred[1], score_threshold=0.25, input_shape=tf.constant([input_size, input_size]))
