@@ -8,6 +8,10 @@ import matplotlib.pyplot as plt
 import random
 import numpy as np
 
+#initialize color map
+cmap = plt.get_cmap('tab20b')
+colors = [cmap(i)[:3] for i in np.linspace(0, 1, 20)]
+
 # 1pt is 1/72 * inch
 # https://www.quora.com/How-is-font-size-measured
 PT2INCH_SIZE_FACTOR = 72
@@ -81,10 +85,6 @@ def do_ocr(im):
 
 
 def draw_bbox(frame, xmin, ymin, xmax, ymax):
-    #initialize color map
-    cmap = plt.get_cmap('tab20b')
-    colors = [cmap(i)[:3] for i in np.linspace(0, 1, 20)]
-
     color = colors[random.randint(0, len(colors) - 1)]
     color = [i * 255 for i in color]
     cv2.rectangle(frame, (int(xmin), int(ymin)), (int(xmax), int(ymax)), color, 2)
@@ -120,22 +120,46 @@ def extract_keystrokes_tracker(video_path):
         # print("Detected: ", ocr)
 
 def extract_keystrokes_detector(video_path):
-    for i, detected in enumerate(cursor_detector.detect_cursor(video_path, WEIGHT_PATH, score_threshold=0.65)):
+    camstroke = Camstroke()
+    consecutive_streak = 0
+
+    vwidth, vheight = get_video_size(video_path)
+    PPI = calc_ppi(vwidth, vheight, screen_size_inch=13.3)
+
+    for i, detected in enumerate(cursor_detector.detect_cursor(video_path, WEIGHT_PATH, score_threshold=0.15)):
         frame, frame_id, pred_result = detected
+        image_h, image_w, _ = frame.shape
+
         boxes, scores, classes, valid_detections = pred_result
         if valid_detections[0] > 0:
+            consecutive_streak += 1
+            print("Cons. Streak: ", consecutive_streak)
             for i in range(valid_detections[0]):
-                print("Detected #%s" % i)
-                print("Boxes: ", boxes[0][i])
+                print("Detection no. %d on Frame %d" % (i, frame_id))
                 print("Scores:", scores[0][i])
 
+                coor = boxes[0][i]
+                print("Coor: ", coor)
+                ymin = int(coor[0] * image_h)
+                ymax = int(coor[2] * image_h)
+                xmin = int(coor[1] * image_w)
+                xmax = int(coor[3] * image_w)
+
+                font_size = calc_fontsize(ymax, ymin, PPI)
+                camstroke.last_pos = (xmin, ymin, xmax, ymax)
+                camstroke.recorded_fontsizes.append(font_size)
+
+                keystroke_image = isolate_keystroke(frame, camstroke.get_fontsize(), xmin, ymin, xmax, ymax, crop=False)
+                keystroke_image.save(fp="results/{}.png".format(frame_id))
+        else:
+            consecutive_streak = 0
+
 def loop_dataset():
-    sizes = [14, 16, 18, 20, 22]
+    sizes = [14] #, 16, 18, 20, 22]
     for s in sizes:
-        # video_path = "../Recordings/vscode_font{}.mp4".format(s)
-        video_path = "data/video/vscode.mp4"
+        video_path = "../Recordings/vscode_font{}.mp4".format(s)
+        # video_path = "data/video/vscode.mp4"
         print("Extracting from {}".format(video_path))
         extract_keystrokes_detector(video_path)
-
 
 loop_dataset()
