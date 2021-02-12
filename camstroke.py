@@ -155,10 +155,10 @@ def extract_keystrokes_detector(video_path):
             consecutive_streak = 0
 
 def loop_dataset():
-    sizes = [14] #, 16, 18, 20, 22]
+    sizes = [14, 16, 18, 20, 22]
     for s in sizes:
-        video_path = "../Recordings/vscode_font{}.mp4".format(s)
-        # video_path = "data/video/vscode.mp4"
+        # video_path = "../Recordings/vscode_font{}.mp4".format(s)
+        video_path = "../Datasets/vscode.mp4"
         print("Extracting from {}".format(video_path))
         extract_keystrokes_detector(video_path)
 
