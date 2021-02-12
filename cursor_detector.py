@@ -14,7 +14,7 @@ import numpy as np
 from tensorflow.compat.v1 import ConfigProto
 from tensorflow.compat.v1 import InteractiveSession
 
-def detect_cursor(path_to_video, path_to_weight, input_size=416, framework='tf', model='yolov4', iou_threshold=0.45, score_threshold=0.50, output_path="", save_output=False):
+def detect_cursor(path_to_video, path_to_weight, input_size=416, framework='tf', model='yolov4', iou_threshold=0.45, score_threshold=0.50, output_path="", draw_bbox=False, save_output=False):
     config = ConfigProto()
     config.gpu_options.allow_growth = True
     session = InteractiveSession(config=config)
@@ -50,10 +50,11 @@ def detect_cursor(path_to_video, path_to_weight, input_size=416, framework='tf',
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(frame)
         else:
+            print(frame_id, vid.get(cv2.CAP_PROP_FRAME_COUNT))
             if frame_id == vid.get(cv2.CAP_PROP_FRAME_COUNT):
                 print("Video processing complete")
                 break
-            raise ValueError("No image! Try with another video format")
+            # raise ValueError("No image! Try with another video format")
         
         frame_size = frame.shape[:2]
         image_data = cv2.resize(frame, (input_size, input_size))
@@ -88,7 +89,10 @@ def detect_cursor(path_to_video, path_to_weight, input_size=416, framework='tf',
             score_threshold=score_threshold
         )
         pred_bbox = [boxes.numpy(), scores.numpy(), classes.numpy(), valid_detections.numpy()]
-        frame = utils.draw_bbox(frame, pred_bbox)
+
+        if draw_bbox:
+            frame = utils.draw_bbox(frame, pred_bbox)
+
         curr_time = time.time()
         exec_time = curr_time - prev_time
         result = np.asarray(frame)

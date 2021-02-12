@@ -30,18 +30,14 @@ def normalize_bbox_size(xmin, ymin, xmax, ymax):
     norm = 0.2
     return (xmin + (xmin * norm), ymin, xmax - (xmax * norm), ymax)
 
-
 def pt_to_px(pt):
     return pt * PT2PX_SIZE_FACTOR
-
 
 def px_to_inch(px, PPI):
     return px / PPI
 
-
 def get_cursor_height(cursor_ymax, cursor_ymin):
     return cursor_ymax - cursor_ymin
-
 
 # automatically detect the font size of the letter based on cursor size
 def calc_fontsize(cursor_ymax, cursor_ymin, PPI):
@@ -50,17 +46,14 @@ def calc_fontsize(cursor_ymax, cursor_ymin, PPI):
     font_size_pt = font_size_inch * PT2INCH_SIZE_FACTOR
     return int(font_size_pt)
 
-
 def calc_ppi(screen_w, screen_h, screen_size_inch):
     # from https://superuser.com/questions/1085734/how-do-i-know-the-dpi-of-my-laptop-screen
     # PPI = √(13662 + 7682) / 15.6 = 100.45
     PPI = sqrt(pow(screen_w, 2) + pow(screen_h, 2)) / screen_size_inch
     return PPI
 
-
 def calc_average(arr):
     return sum(arr) / len(arr)
-
 
 def get_video_size(video_path):
     vid = cv2.VideoCapture(video_path)
@@ -68,21 +61,19 @@ def get_video_size(video_path):
     width = vid.get(cv2.CAP_PROP_FRAME_WIDTH)
     return (width, height)
 
-
 def isolate_keystroke(frame, font_size, cursor_xmin, cursor_ymin, cursor_xmax, cursor_ymax, crop=False):
     image = Image.fromarray(frame)
     font_span = pt_to_px(font_size)
     crop_range = (cursor_xmin - font_span, cursor_ymin,
                   cursor_xmin, cursor_ymax)
-    if crop:
+    if crop: # the bounding box will be cropped and returned as a frame
         return image.crop(crop_range)
-    else:
-        return Image.fromarray(draw_bbox(frame, crop_range[0], crop_range[1], crop_range[2], crop_range[3]))
+    else: # the bounding box will be drawn inside the frame istead of cropped
+        return draw_bbox(frame, crop_range[0], crop_range[1], crop_range[2], crop_range[3])
+        # return Image.fromarray(draw_bbox(frame, crop_range[0], crop_range[1], crop_range[2], crop_range[3]))
 
-
-def do_ocr(im):
+def do_OCR(im):
     return pytesseract.image_to_string(im)
-
 
 def draw_bbox(frame, xmin, ymin, xmax, ymax):
     color = colors[random.randint(0, len(colors) - 1)]
@@ -90,6 +81,11 @@ def draw_bbox(frame, xmin, ymin, xmax, ymax):
     cv2.rectangle(frame, (int(xmin), int(ymin)), (int(xmax), int(ymax)), color, 2)
     return frame
 
+def frames_to_video(frames, output_path, w, h):
+    out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (w, h))
+    for frame in frames:
+        out.write(frame)
+    out.release()
 
 class Camstroke:
     last_pos = (0, 0, 0, 0)  # xmin, ymin, xmax, ymax
@@ -113,20 +109,22 @@ def extract_keystrokes_tracker(video_path):
         camstroke.last_pos = (xmin, ymin, xmax, ymax)
         camstroke.recorded_fontsizes.append(font_size)
 
-        keystroke_image = isolate_keystroke(frame, camstroke.get_fontsize(), xmin, ymin, xmax, ymax, crop=False)
+        keystroke_image = isolate_keystroke(frame, camstroke.get_fontsize(), xmin, ymin, xmax, ymax, crop=True)
         # keystroke_image.show()
-        # ocr = do_ocr(keystroke_image)
+        # ocr = do_OCR(keystroke_image)
         keystroke_image.save(fp="results/{}.png".format(frame_num))
         # print("Detected: ", ocr)
 
 def extract_keystrokes_detector(video_path):
+    isolated_keystrokes = []
+
     camstroke = Camstroke()
     consecutive_streak = 0
 
     vwidth, vheight = get_video_size(video_path)
     PPI = calc_ppi(vwidth, vheight, screen_size_inch=13.3)
 
-    for i, detected in enumerate(cursor_detector.detect_cursor(video_path, WEIGHT_PATH, score_threshold=0.15)):
+    for i, detected in enumerate(cursor_detector.detect_cursor(video_path, WEIGHT_PATH, score_threshold=0.20)):
         frame, frame_id, pred_result = detected
         image_h, image_w, _ = frame.shape
 
@@ -150,16 +148,27 @@ def extract_keystrokes_detector(video_path):
                 camstroke.recorded_fontsizes.append(font_size)
 
                 keystroke_image = isolate_keystroke(frame, camstroke.get_fontsize(), xmin, ymin, xmax, ymax, crop=False)
-                keystroke_image.save(fp="results/{}.png".format(frame_id))
+                isolated_keystrokes.append(keystroke_image)
+
+                # keystroke_image.show()
+                # keystroke_image.save(fp="results/{}.png".format(frame_id))
         else:
             consecutive_streak = 0
+    
+    frames_to_video(isolated_keystrokes, 'output.avi', image_w, image_h)
 
 def loop_dataset():
     sizes = [14, 16, 18, 20, 22]
     for s in sizes:
-        # video_path = "../Recordings/vscode_font{}.mp4".format(s)
-        video_path = "../Datasets/vscode.mp4"
+        video_path = "../Recordings/vscode_font{}.mp4".format(s)
         print("Extracting from {}".format(video_path))
         extract_keystrokes_detector(video_path)
 
-loop_dataset()
+def main():
+    video_path = "../Datasets/vscode.mp4"
+    print("Extracting from {}".format(video_path))
+    extract_keystrokes_detector(video_path)
+
+if __name__ == '__main__':
+    # loop_dataset()
+    main()
