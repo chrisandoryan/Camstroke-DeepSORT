@@ -43,7 +43,7 @@ def detect_cursor(path_to_video, path_to_weight, input_size=416, framework='tf',
     #     codec = cv2.VideoWriter_fourcc(*FLAGS.output_format)
     #     out = cv2.VideoWriter(FLAGS.output, codec, fps, (width, height))
 
-    frame_id = 0
+    frame_id = 1
     while True:
         return_value, frame = vid.read()
         if return_value:
@@ -54,7 +54,7 @@ def detect_cursor(path_to_video, path_to_weight, input_size=416, framework='tf',
             if frame_id == vid.get(cv2.CAP_PROP_FRAME_COUNT):
                 print("Video processing complete")
                 break
-            # raise ValueError("No image! Try with another video format")
+            raise ValueError("No image! Try with another video format")
         
         frame_size = frame.shape[:2]
         image_data = cv2.resize(frame, (input_size, input_size))

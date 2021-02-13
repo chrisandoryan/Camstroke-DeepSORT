@@ -7,6 +7,14 @@ from math import sqrt
 import matplotlib.pyplot as plt
 import random
 import numpy as np
+import csv
+
+class Camstroke:
+    last_pos = (0, 0, 0, 0)  # xmin, ymin, xmax, ymax
+    recorded_fontsizes = []
+
+    def get_avg_fontsize(self):
+        return calc_average(self.recorded_fontsizes)
 
 #initialize color map
 cmap = plt.get_cmap('tab20b')
@@ -26,6 +34,12 @@ FONT_SIZE_CONSENSUS = 100
 # path to weight for cursor tracker
 WEIGHT_PATH = "checkpoints/camstroke-yolov4-416"
 
+def save_bbox_data(output_path, detections):
+    with open(output_path, mode='w') as csv_file:
+        fieldnames = ['detection_id', 'score', 'frame_id', 'est_fontsize', 'bbox_xmin', 'bbox_xmax', 'bbox_ymin', 'bbox_ymax', 'bbox_w', 'bbox_h', 'kisolation_w', 'kisolation_h']
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+        writer.writeheader()
+        
 def normalize_bbox_size(xmin, ymin, xmax, ymax):
     norm = 0.2
     return (xmin + (xmin * norm), ymin, xmax - (xmax * norm), ymax)
@@ -81,18 +95,11 @@ def draw_bbox(frame, xmin, ymin, xmax, ymax):
     cv2.rectangle(frame, (int(xmin), int(ymin)), (int(xmax), int(ymax)), color, 2)
     return frame
 
-def frames_to_video(frames, output_path, w, h):
+def frame_to_video(frames, output_path, w, h):
     out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (w, h))
     for frame in frames:
         out.write(frame)
     out.release()
-
-class Camstroke:
-    last_pos = (0, 0, 0, 0)  # xmin, ymin, xmax, ymax
-    recorded_fontsizes = []
-
-    def get_fontsize(self):
-        return calc_average(self.recorded_fontsizes)
 
 # iterate through detected cursor while constantly estimating font size
 def extract_keystrokes_tracker(video_path):
@@ -109,7 +116,7 @@ def extract_keystrokes_tracker(video_path):
         camstroke.last_pos = (xmin, ymin, xmax, ymax)
         camstroke.recorded_fontsizes.append(font_size)
 
-        keystroke_image = isolate_keystroke(frame, camstroke.get_fontsize(), xmin, ymin, xmax, ymax, crop=True)
+        keystroke_image = isolate_keystroke(frame, camstroke.get_avg_fontsize(), xmin, ymin, xmax, ymax, crop=True)
         # keystroke_image.show()
         # ocr = do_OCR(keystroke_image)
         keystroke_image.save(fp="results/{}.png".format(frame_num))
@@ -147,7 +154,7 @@ def extract_keystrokes_detector(video_path):
                 camstroke.last_pos = (xmin, ymin, xmax, ymax)
                 camstroke.recorded_fontsizes.append(font_size)
 
-                keystroke_image = isolate_keystroke(frame, camstroke.get_fontsize(), xmin, ymin, xmax, ymax, crop=False)
+                keystroke_image = isolate_keystroke(frame, camstroke.get_avg_fontsize(), xmin, ymin, xmax, ymax, crop=False)
                 isolated_keystrokes.append(keystroke_image)
 
                 # keystroke_image.show()
@@ -155,7 +162,7 @@ def extract_keystrokes_detector(video_path):
         else:
             consecutive_streak = 0
     
-    frames_to_video(isolated_keystrokes, 'output.avi', image_w, image_h)
+    frame_to_video(isolated_keystrokes, 'output.avi', image_w, image_h)
 
 def loop_dataset():
     sizes = [14, 16, 18, 20, 22]
