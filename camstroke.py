@@ -16,6 +16,14 @@ class Camstroke:
     def get_avg_fontsize(self):
         return calc_average(self.recorded_fontsizes)
 
+class DetectedCursor:
+    def __init__(self, detection_id, frame_id, score, xmin, ymin, xmax, ymax):
+        return
+        
+class IsolatedKeystroke:
+    def __init__(self,):
+        return
+
 #initialize color map
 cmap = plt.get_cmap('tab20b')
 colors = [cmap(i)[:3] for i in np.linspace(0, 1, 20)]
@@ -153,6 +161,8 @@ def extract_keystrokes_detector(video_path):
                 font_size = calc_fontsize(ymax, ymin, PPI)
                 camstroke.last_pos = (xmin, ymin, xmax, ymax)
                 camstroke.recorded_fontsizes.append(font_size)
+
+                detected = DetectedCursor(i, frame_id, scores[0][i], xmin, ymin, xmax, ymax)
 
                 keystroke_image = isolate_keystroke(frame, camstroke.get_avg_fontsize(), xmin, ymin, xmax, ymax, crop=False)
                 isolated_keystrokes.append(keystroke_image)
