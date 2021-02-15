@@ -132,7 +132,7 @@ def isolate_keystroke(frame, font_size, cursor_xmin, cursor_ymin, cursor_xmax, c
 
     xmin = (cursor_xmin - font_span) + cursor_x_center
     ymin = cursor_ymin
-    xmax = cursor_xmin + cursor_x_center
+    xmax = cursor_xmin + (cursor_x_center)
     ymax = cursor_ymax
 
     crop_range = (xmin, ymin, xmax, ymax)
@@ -156,7 +156,7 @@ def do_OCR(keystroke, enhance=True, pad=True):
     # https://stackoverflow.com/questions/9480013/image-processing-to-improve-tesseract-ocr-accuracy
     if enhance:
         # resize image
-        RESIZE_FACTOR = 3.0
+        RESIZE_FACTOR = 2.5
         im = cv2.resize(im, None, fx=RESIZE_FACTOR, fy=RESIZE_FACTOR, interpolation=cv2.INTER_CUBIC)
 
         # convert image to grayscale
@@ -167,17 +167,22 @@ def do_OCR(keystroke, enhance=True, pad=True):
         im = cv2.dilate(im, kernel, iterations=1)
         im = cv2.erode(im, kernel, iterations=1)
 
-        # applying blur
-        im = cv2.adaptiveThreshold(cv2.bilateralFilter(im, 9, 75, 75), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
+        # applying adaptive blur
+        # im = cv2.adaptiveThreshold(cv2.bilateralFilter(im, 9, 75, 75), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
+        # im = cv2.adaptiveThreshold(cv2.medianBlur(im, 3), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
+
+        # applying normal blur
+        im = cv2.threshold(cv2.medianBlur(im, 3), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+        im = cv2.threshold(cv2.bilateralFilter(im, 5, 75, 75), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
 
     im = Image.fromarray(im)
 
     # perform image pad and resize for higher resolution
     if pad:
-        im = pad_image(im)
+        im = pad_image(im, target_size=50)
 
-    return im, pytesseract.image_to_string(im, config='--psm 10').strip()
-    # return im, pytesseract.image_to_data(im, config='--psm 10')
+    return im, pytesseract.image_to_string(im, config='--psm 10 --oem 1').strip()
+    # return im, pytesseract.image_to_data(im, config='--psm 10 --oem 3')
 
 def draw_bbox(frame, xmin, ymin, xmax, ymax):
     color = colors[random.randint(0, len(colors) - 1)]
@@ -191,7 +196,7 @@ def frame_to_video(frames, output_path, w, h):
         out.write(frame)
     out.release()
 
-def pad_image(image, target_size=300):
+def pad_image(image, target_size=100):
     padded_image = ImageOps.expand(image, target_size, 'black')
     return padded_image
 
