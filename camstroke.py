@@ -59,6 +59,9 @@ class IsolatedKeystroke(object):
         self.kisolation_w = kisolation_w
         self.kisolation_h = kisolation_h
         return
+    def to_image(self):
+        return Image.fromarray(self.kisolation_frame)
+
 
 #initialize color map
 cmap = plt.get_cmap('tab20b')
@@ -124,9 +127,12 @@ def isolate_keystroke(frame, font_size, cursor_xmin, cursor_ymin, cursor_xmax, c
     image = Image.fromarray(frame)
     font_span = pt_to_px(font_size)
 
-    xmin = cursor_xmin - font_span
+    # normalize the isolation box coordinate near the center of cursor bounding box
+    cursor_x_center = (cursor_xmax - cursor_xmin) / 2
+
+    xmin = (cursor_xmin - font_span) + cursor_x_center
     ymin = cursor_ymin
-    xmax = cursor_xmin
+    xmax = cursor_xmin + cursor_x_center
     ymax = cursor_ymax
 
     crop_range = (xmin, ymin, xmax, ymax)
@@ -159,29 +165,27 @@ def frame_to_video(frames, output_path, w, h):
     out.release()
 
 # iterate through detected cursor while constantly estimating font size
-def extract_keystrokes_tracker(video_path):
-    camstroke = Camstroke()
+# def extract_keystrokes_tracker(video_path):
+#     camstroke = Camstroke()
 
-    vwidth, vheight = get_video_size(video_path)
-    PPI = calc_ppi(vwidth, vheight, screen_size_inch=13.3)
+#     vwidth, vheight = get_video_size(video_path)
+#     PPI = calc_ppi(vwidth, vheight, screen_size_inch=13.3)
 
-    for i, tracked in enumerate(cursor_tracker.track_cursor(video_path, WEIGHT_PATH, draw_bbox=True)):
-        frame, frame_num, xmin, ymin, xmax, ymax = tracked
-        im = Image.fromarray(frame)
-        font_size = calc_fontsize(ymax, ymin, PPI)
+#     for i, tracked in enumerate(cursor_tracker.track_cursor(video_path, WEIGHT_PATH, draw_bbox=True)):
+#         frame, frame_num, xmin, ymin, xmax, ymax = tracked
+#         im = Image.fromarray(frame)
+#         font_size = calc_fontsize(ymax, ymin, PPI)
 
-        camstroke.last_pos = (xmin, ymin, xmax, ymax)
-        camstroke.recorded_fontsizes.append(font_size)
+#         camstroke.last_pos = (xmin, ymin, xmax, ymax)
+#         camstroke.recorded_fontsizes.append(font_size)
 
-        keystroke_image = isolate_keystroke(frame, camstroke.get_avg_fontsize(), xmin, ymin, xmax, ymax, crop=True)
+#         keystroke_image = isolate_keystroke(frame, camstroke.get_avg_fontsize(), xmin, ymin, xmax, ymax, crop=True)
         # keystroke_image.show()
         # ocr = do_OCR(keystroke_image)
         # keystroke_image.save(fp="results/{}.png".format(frame_num))
         # print("Detected: ", ocr)
 
 def extract_keystrokes_detector(video_path):
-    keystroke_images = []
-
     camstroke = Camstroke()
     consecutive_streak = 0
 
@@ -193,7 +197,7 @@ def extract_keystrokes_detector(video_path):
         image_h, image_w, _ = frame.shape
         
         # for fast-testing
-        # if frame_id >= 45:
+        # if frame_id >= 500:
         #     break
 
         boxes, scores, classes, valid_detections = pred_result
@@ -221,7 +225,7 @@ def extract_keystrokes_detector(video_path):
 
                 detected_cursor = DetectedCursor(i, frame_id, scores[0][i], xmin, ymin, xmax, ymax, bbox_w, bbox_h)
 
-                isolated_frame, isolated_width, isolated_height = isolate_keystroke(frame, camstroke.get_avg_fontsize(), xmin, ymin, xmax, ymax, crop=False)
+                isolated_frame, isolated_width, isolated_height = isolate_keystroke(frame, camstroke.get_avg_fontsize(), xmin, ymin, xmax, ymax, crop=True) # change crop to False to draw isolation box instead of cropping it
 
                 keystroke = IsolatedKeystroke(isolated_frame, isolated_width, isolated_height)
 
@@ -229,15 +233,17 @@ def extract_keystrokes_detector(video_path):
                 camstroke.detected_cursors.append(detected_cursor)
                 camstroke.isolated_keystrokes.append(keystroke)
 
-                # keystroke_image = Image.fromarray(isolate_frame)
-                # keystroke_images.append(keystroke_image)
+                ocr = do_OCR(keystroke.to_image())
+
+                keystroke_image = keystroke.to_image()
                 # keystroke_image.show()
-                # keystroke_image.save(fp="results/{}.png".format(frame_id))
+                keystroke_image.save(fp="results/{}_{}.png".format(frame_id, ocr))
         else:
             consecutive_streak = 0
     
-    save_keystroke_data('keystrokes.csv', camstroke.get_keystroke_data())
-    # frame_to_video(keystroke_images, 'output.avi', image_w, image_h)
+    # save_keystroke_data('keystrokes.csv', camstroke.get_keystroke_data())
+    frames = [f.kisolation_frame for f in camstroke.isolated_keystrokes]
+    # frame_to_video(frames, 'output.avi', image_w, image_h)
 
 def loop_dataset():
     sizes = [14, 16, 18, 20, 22]

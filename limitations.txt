@@ -1,1 +1,3 @@
 1. Wild guess, kemungkinan model hanya bisa mengenali font size sesuai yang telah di training, jadi jika menggunakan training data dengan font 16, maka model akan menggambar bounding box dengan size 16 juga (jika lebih akan dicrop). Hal tersebut berpengaruh pada font size estimator. Atau bisa juga karena dataset mengandung cursor yang cropped (tolong cek).
+2. cursor detectiona accuracy turun drastis ketika window vscode di scroll horizontal, penyebab belum diketahui.
+3. 
