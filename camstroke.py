@@ -156,7 +156,7 @@ def do_OCR(keystroke, enhance=True, pad=True):
     # https://stackoverflow.com/questions/9480013/image-processing-to-improve-tesseract-ocr-accuracy
     if enhance:
         # resize image
-        RESIZE_FACTOR = 2.5
+        RESIZE_FACTOR = 1.5
         im = cv2.resize(im, None, fx=RESIZE_FACTOR, fy=RESIZE_FACTOR, interpolation=cv2.INTER_CUBIC)
 
         # convert image to grayscale
@@ -173,7 +173,8 @@ def do_OCR(keystroke, enhance=True, pad=True):
 
         # applying normal blur
         im = cv2.threshold(cv2.medianBlur(im, 3), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-        im = cv2.threshold(cv2.bilateralFilter(im, 5, 75, 75), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+        # im = cv2.threshold(cv2.bilateralFilter(im, 5, 75, 75), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+        # im = cv2.threshold(cv2.GaussianBlur(im, (5, 5), 0), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
 
     im = Image.fromarray(im)
 
@@ -181,7 +182,7 @@ def do_OCR(keystroke, enhance=True, pad=True):
     if pad:
         im = pad_image(im, target_size=50)
 
-    return im, pytesseract.image_to_string(im, config='--psm 10 --oem 1').strip()
+    return im, pytesseract.image_to_string(im, config='--psm 10').strip()
     # return im, pytesseract.image_to_data(im, config='--psm 10 --oem 3')
 
 def draw_bbox(frame, xmin, ymin, xmax, ymax):
