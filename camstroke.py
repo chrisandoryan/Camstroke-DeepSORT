@@ -1,6 +1,6 @@
 import cursor_tracker
 import cursor_detector
-from PIL import Image
+from PIL import Image, ImageOps
 import cv2
 import pytesseract
 from math import sqrt
@@ -164,6 +164,21 @@ def frame_to_video(frames, output_path, w, h):
         out.write(frame)
     out.release()
 
+def pad_image(image, target_size=600):
+    old_size = image.size
+
+    ratio = float(target_size) / max(old_size)
+    new_size = tuple([int(x * ratio) for x in old_size])
+
+    delta_w = target_size - new_size[0]
+    delta_h = target_size - new_size[1]
+
+    padding = (delta_w // 2, delta_h // 2, delta_w - (delta_w // 2), delta_h - (delta_h // 2))
+    padded_image = ImageOps.expand(image, padding)
+    padded_image.show()
+
+    return padded_image
+
 # iterate through detected cursor while constantly estimating font size
 # def extract_keystrokes_tracker(video_path):
 #     camstroke = Camstroke()
@@ -236,8 +251,9 @@ def extract_keystrokes_detector(video_path):
                 ocr = do_OCR(keystroke.to_image())
 
                 keystroke_image = keystroke.to_image()
+                pad_image(keystroke_image)
                 # keystroke_image.show()
-                keystroke_image.save(fp="results/{}_{}.png".format(frame_id, ocr))
+                # keystroke_image.save(fp="results/{}_{}.png".format(frame_id, ocr))
         else:
             consecutive_streak = 0
     
