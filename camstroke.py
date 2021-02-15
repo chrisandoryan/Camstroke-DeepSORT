@@ -178,7 +178,10 @@ def do_OCR(keystroke, enhance=True, pad=True):
 
     im = Image.fromarray(im)
 
-    # perform image pad and resize for higher resolution
+    # invert the image
+    im = ImageOps.invert(im)
+
+    # perform image padding and resize for higher resolution
     if pad:
         im = pad_image(im, target_size=50)
 
