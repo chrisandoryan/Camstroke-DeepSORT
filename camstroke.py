@@ -149,8 +149,35 @@ def isolate_keystroke(frame, font_size, cursor_xmin, cursor_ymin, cursor_xmax, c
 
     return frame, isolation_width, isolation_height
 
-def do_OCR(im):
-    return pytesseract.image_to_string(im)
+def do_OCR(keystroke, enhance=True, pad=True):
+    im = keystroke.kisolation_frame
+    # enhance the image before performing OCR
+    # https://stackoverflow.com/questions/42566319/tesseract-ocr-reading-a-low-resolution-pixelated-font-esp-digits
+    # https://stackoverflow.com/questions/9480013/image-processing-to-improve-tesseract-ocr-accuracy
+    if enhance:
+        # resize image
+        RESIZE_FACTOR = 3.0
+        im = cv2.resize(im, None, fx=RESIZE_FACTOR, fy=RESIZE_FACTOR, interpolation=cv2.INTER_CUBIC)
+
+        # convert image to grayscale
+        im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+
+        # applying dilation and erosion
+        kernel = np.ones((1, 1), np.uint8)
+        im = cv2.dilate(im, kernel, iterations=1)
+        im = cv2.erode(im, kernel, iterations=1)
+
+        # applying blur
+        im = cv2.adaptiveThreshold(cv2.bilateralFilter(im, 9, 75, 75), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
+
+    im = Image.fromarray(im)
+
+    # perform image pad and resize for higher resolution
+    if pad:
+        im = pad_image(im)
+
+    return im, pytesseract.image_to_string(im, config='--psm 10').strip()
+    # return im, pytesseract.image_to_data(im, config='--psm 10')
 
 def draw_bbox(frame, xmin, ymin, xmax, ymax):
     color = colors[random.randint(0, len(colors) - 1)]
@@ -237,14 +264,12 @@ def extract_keystrokes_detector(video_path):
                 camstroke.detected_cursors.append(detected_cursor)
                 camstroke.isolated_keystrokes.append(keystroke)
 
-                keystroke_image = keystroke.to_image()
-                padded_image = pad_image(keystroke_image)
+                keystroke_image, ocr_result = do_OCR(keystroke, enhance=True, pad=False)
+                print(ocr_result)
 
-                ocr = do_OCR(padded_image)
-                # print(type(ocr))
-
+                # keystroke_image = keystroke.to_image()
                 # keystroke_image.show()
-                padded_image.save(fp="results/{}_{}.png".format(frame_id, ocr))
+                keystroke_image.save(fp="results/{}_{}.png".format(frame_id, ocr_result))
         else:
             consecutive_streak = 0
     
@@ -260,7 +285,7 @@ def loop_dataset():
         extract_keystrokes_detector(video_path)
 
 def main():
-    video_path = "../Datasets/vscode.mp4"
+    video_path = "../Datasets/vscode_cut.mp4"
     print("Extracting from {}".format(video_path))
     extract_keystrokes_detector(video_path)
 
