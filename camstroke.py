@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import random
 import numpy as np
 import csv
+from pytesseract import Output
 
 class Camstroke(object):
     last_pos = (0, 0, 0, 0)  # xmin, ymin, xmax, ymax
@@ -27,6 +28,10 @@ class Camstroke(object):
             merged['est_fontsize'] = font_size
             keystroke_data.append(merged)
         return keystroke_data
+
+class TypingModel(object):
+    def __init__(self):
+        return
 
 class DetectedCursor(object):
     detection_id = ""
@@ -54,14 +59,32 @@ class IsolatedKeystroke(object):
     kisolation_frame = None
     kisolation_w = 0
     kisolation_h = 0
-    def __init__(self, kisolation_frame, kisolation_w, kisolation_h):
+    kisolation_xmin = 0
+    kisolation_xmax = 0
+    kisolation_ymin = 0
+    kisolation_ymax = 0
+    ocr_result = None
+    def __init__(self, kisolation_frame, kisolation_xmin, kisolation_xmax, kisolation_ymin, kisolation_ymax, kisolation_w, kisolation_h):
         self.kisolation_frame = kisolation_frame
         self.kisolation_w = kisolation_w
         self.kisolation_h = kisolation_h
+        self.kisolation_xmin = kisolation_xmin
+        self.kisolation_xmax = kisolation_xmax
+        self.kisolation_ymin = kisolation_ymin
+        self.kisolation_ymax = kisolation_ymax
         return
     def to_image(self):
         return Image.fromarray(self.kisolation_frame)
-
+    def get_character(self):
+        index = np.argmax(self.ocr_result['conf'])
+        if int(self.ocr_result['conf'][index]) < OCR_CONF_THRESHOLD:
+            return None
+        else:
+            text = self.ocr_result['text'][index]
+            if text in INVALID_KEYSTROKE:
+                return None
+            else:
+                return text
 
 #initialize color map
 cmap = plt.get_cmap('tab20b')
@@ -77,6 +100,12 @@ PT2PX_SIZE_FACTOR = 1  # 1.328147
 
 # how many cursor detections required to determine the average font size
 FONT_SIZE_CONSENSUS = 100
+
+# minimum confidence value for OCR detection
+OCR_CONF_THRESHOLD = 10
+
+# list of insignificant/invalid keystrokes that needs to be ignored
+INVALID_KEYSTROKE = ["|", "="]
 
 # path to weight for cursor tracker
 WEIGHT_PATH = "checkpoints/camstroke-yolov4-416"
@@ -147,7 +176,7 @@ def isolate_keystroke(frame, font_size, cursor_xmin, cursor_ymin, cursor_xmax, c
         # the bounding box will be drawn inside the frame istead of cropped, returned   as a frame
         frame =  draw_bbox(frame, crop_range[0], crop_range[1], crop_range[2], crop_range[3])
 
-    return frame, isolation_width, isolation_height
+    return frame, crop_range, isolation_width, isolation_height
 
 def do_OCR(keystroke, enhance=True, pad=True):
     im = keystroke.kisolation_frame
@@ -178,15 +207,15 @@ def do_OCR(keystroke, enhance=True, pad=True):
 
     im = Image.fromarray(im)
 
-    # invert the image
+    # invert the image, tesseract works best with black font and white background
     im = ImageOps.invert(im)
 
     # perform image padding and resize for higher resolution
     if pad:
         im = pad_image(im, target_size=50)
 
-    return im, pytesseract.image_to_string(im, config='--psm 10').strip()
-    # return im, pytesseract.image_to_data(im, config='--psm 10 --oem 3')
+    # return im, pytesseract.image_to_string(im, config='--psm 10').strip()
+    return im, pytesseract.image_to_data(im, output_type=Output.DICT , config='--psm 10 --oem 3')
 
 def draw_bbox(frame, xmin, ymin, xmax, ymax):
     color = colors[random.randint(0, len(colors) - 1)]
@@ -229,6 +258,8 @@ def extract_keystrokes_detector(video_path):
     camstroke = Camstroke()
     consecutive_streak = 0
 
+    temp = ""
+
     vwidth, vheight = get_video_size(video_path)
     PPI = calc_ppi(vwidth, vheight, screen_size_inch=13.3)
 
@@ -265,25 +296,35 @@ def extract_keystrokes_detector(video_path):
 
                 detected_cursor = DetectedCursor(i, frame_id, scores[0][i], xmin, ymin, xmax, ymax, bbox_w, bbox_h)
 
-                isolated_frame, isolated_width, isolated_height = isolate_keystroke(frame, camstroke.get_avg_fontsize(), xmin, ymin, xmax, ymax, crop=True) # change crop to False to draw isolation box instead of cropping it
+                isolated_frame, isolation_coordinate, isolated_width, isolated_height = isolate_keystroke(frame, camstroke.get_avg_fontsize(), xmin, ymin, xmax, ymax, crop=True) # change crop to False to draw isolation box instead of cropping it
 
-                keystroke = IsolatedKeystroke(isolated_frame, isolated_width, isolated_height)
+                isolated_xmin, isolated_ymin, isolated_xmax, isolated_ymax = isolation_coordinate
+
+                keystroke = IsolatedKeystroke(isolated_frame, isolated_xmin, isolated_ymin, isolated_xmax, isolated_ymax, isolated_width, isolated_height)
 
                 # save both detection and isolation data
                 camstroke.detected_cursors.append(detected_cursor)
                 camstroke.isolated_keystrokes.append(keystroke)
 
                 keystroke_image, ocr_result = do_OCR(keystroke, enhance=True, pad=False)
-                print(ocr_result)
+                print("OCR Result: ", ocr_result)
+
+                keystroke.ocr_result = ocr_result
+                key = keystroke.get_character()
+
+                if key != None:
+                    temp += key
+                    print("Detected: ", temp)
+                    print("Last coordinate:", keystroke.kisolation_xmin, keystroke.kisolation_ymin)
 
                 # keystroke_image = keystroke.to_image()
                 # keystroke_image.show()
-                keystroke_image.save(fp="results/{}_{}.png".format(frame_id, ocr_result))
+                # keystroke_image.save(fp="results/{}_{}.png".format(frame_id, ocr_result))
         else:
             consecutive_streak = 0
     
     # save_keystroke_data('keystrokes.csv', camstroke.get_keystroke_data())
-    frames = [f.kisolation_frame for f in camstroke.isolated_keystrokes]
+    # frames = [f.kisolation_frame for f in camstroke.isolated_keystrokes]
     # frame_to_video(frames, 'output.avi', image_w, image_h)
 
 def loop_dataset():
