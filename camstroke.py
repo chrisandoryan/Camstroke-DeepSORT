@@ -10,9 +10,10 @@ import numpy as np
 import csv
 import itertools
 from pytesseract import Output
+import uuid
 
 # if the next detected keystroke is +- around the last detected keystroke's x coordinate, the detection result is considered to be for the same detection attempt as the previous
-DETECTION_SENSITIVITY = 10 # in pixels, alternatively we can use the font size
+DETECTION_SENSITIVITY = 5 # in pixels, alternatively we can use the font size
 
 class Camstroke(object):
     last_cursor_position = (0, 0, 0, 0)  # xmin, ymin, xmax, ymax
@@ -41,10 +42,14 @@ class Camstroke(object):
             last_kpoint = self.keystroke_points[-1]
             last_xmin, _, _, _ = last_kpoint.last_detection_coordinates
             if abs(isolated_keystroke.kisolation_xmin - last_xmin) <= DETECTION_SENSITIVITY:
+                print("Using Last KeystrokePoint with ID: ", last_kpoint.id)
+                print("Kunits: ", len(last_kpoint.kunits))
                 last_kpoint.add_keystroke_unit(frame_id, isolated_keystroke.get_isolation_coordinates(), isolated_keystroke)
                 return last_kpoint
 
         kpoint = KeystrokePoint(frame_id, isolated_keystroke.get_isolation_coordinates())
+        print("Creating New KeystrokePoint with ID: ", kpoint.id)
+        print("Kunits: ", len(kpoint.kunits))
         kpoint.add_keystroke_unit(frame_id, isolated_keystroke.get_isolation_coordinates(), isolated_keystroke)
         self.keystroke_points.append(kpoint)
         return kpoint
@@ -96,27 +101,36 @@ class IsolatedKeystroke(object):
     def get_character(self):
         index = np.argmax(self.ocr_result['conf'])
         if int(self.ocr_result['conf'][index]) < OCR_CONF_THRESHOLD:
-            return None
+            return None, None
         else:
             text = self.ocr_result['text'][index]
+            conf = self.ocr_result['conf'][index]
             if text in INVALID_KEYSTROKE:
-                return None
+                return None, None
             else:
-                return text
+                return conf, text
     def get_isolation_coordinates(self):
         return (self.kisolation_xmin, self.kisolation_ymin, self.kisolation_xmax, self.kisolation_ymax)
 
 # a KeystrokePoint contains one or more KUnit (isolated_keystroke), and is used to train HMM for search-space reduction
 class KeystrokePoint(object):
-    kunits = []
+    id = ""
     last_detection_coordinates = () # xmin, ymin, xmax, ymax
+    kunits = []
 
     k_appear = 0 # when the keystroke first appears on the frames, a substitution for KeyPress timing
     k_vanish = 0 # when the keystroke last appears on the frames, a substitution for KeyRelease timing
     
     def __init__(self, frame_id, last_detection_coordinates):
+        self.id = uuid.uuid4()
         self.k_appear = frame_id
         self.last_detection_coordinates = last_detection_coordinates
+        self.kunits = []
+
+    def keytext_in_consensus(self):
+        for isolated_keystroke in self.kunits:
+            conf, keytext = isolated_keystroke.get_character()
+            print(conf, keytext)
 
     def add_keystroke_unit(self, frame_id, last_detection_coordinates, isolated_keystroke):
         self.k_vanish = frame_id
@@ -129,7 +143,10 @@ class KeystrokePoint(object):
         keyhold = (self.k_vanish - self.k_appear) / 2
         keydelay = (self.k_vanish - self.k_appear)
 
+        self.keytext_in_consensus()
+
         return {
+            'id': self.id,
             'kunits': self.kunits,
             'keypress': keypress,
             'keyrelease': keyrelease,
@@ -327,11 +344,11 @@ def extract_keystrokes_detector(video_path):
             consecutive_streak += 1
             print("Cons. Streak: ", consecutive_streak)
             for i in range(valid_detections[0]):
-                print("Detection no. %d on Frame %d" % (i, frame_id))
-                print("Score:", scores[0][i])
+                # print("Detection no. %d on Frame %d" % (i, frame_id))
+                # print("Score:", scores[0][i])
 
                 coor = boxes[0][i]
-                print("Coor: ", coor)
+                # print("Coor: ", coor)
 
                 ymin = int(coor[0] * image_h)
                 ymax = int(coor[2] * image_h)
@@ -358,15 +375,15 @@ def extract_keystrokes_detector(video_path):
                 camstroke.isolated_keystrokes.append(keystroke)
 
                 keystroke_image, ocr_result = do_OCR(keystroke, enhance=True, pad=False)
-                print("OCR Result: ", ocr_result)
+                # print("OCR Result: ", ocr_result)
 
                 keystroke.ocr_result = ocr_result
-                key = keystroke.get_character()
+                conf, keytext = keystroke.get_character()
 
-                if key != None:
-                    temp += key
-                    print("Detected: ", temp)
-                    print("Isolation Coordinate (x, y): ", floor(keystroke.kisolation_xmin), floor(keystroke.kisolation_ymin))
+                if keytext != None:
+                    temp += keytext
+                    # print("Detected: ", temp)
+                    # print("Isolation Coordinate (x, y): ", floor(keystroke.kisolation_xmin), floor(keystroke.kisolation_ymin))
                     keypoint = camstroke.store_keystroke_timing(frame_id, keystroke)
                     print(keypoint.get_timing_data())
 
