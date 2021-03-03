@@ -11,6 +11,8 @@ import csv
 import itertools
 from pytesseract import Output
 import uuid
+from collections import defaultdict
+import operator
 
 # if the next detected keystroke is +- around the last detected keystroke's x coordinate, the detection result is considered to be for the same detection attempt as the previous
 DETECTION_SENSITIVITY = 5  # in pixels, alternatively we can use the font size
@@ -44,16 +46,16 @@ class Camstroke(object):
             last_kpoint = self.keystroke_points[-1]
             last_xmin, _, _, _ = last_kpoint.last_detection_coordinates
             if abs(isolated_keystroke.kisolation_xmin - last_xmin) <= DETECTION_SENSITIVITY:
-                print("Using Last KeystrokePoint with ID: ", last_kpoint.id)
-                print("Kunits: ", len(last_kpoint.kunits))
+                # print("Using Last KeystrokePoint with ID: ", last_kpoint.id)
+                # print("Kunits: ", len(last_kpoint.kunits))
                 last_kpoint.add_keystroke_unit(
                     frame_id, isolated_keystroke.get_isolation_coordinates(), isolated_keystroke)
                 return last_kpoint
 
         kpoint = KeystrokePoint(
             frame_id, isolated_keystroke.get_isolation_coordinates())
-        print("Creating New KeystrokePoint with ID: ", kpoint.id)
-        print("Kunits: ", len(kpoint.kunits))
+        # print("Creating New KeystrokePoint with ID: ", kpoint.id)
+        # print("Kunits: ", len(kpoint.kunits))
         kpoint.add_keystroke_unit(
             frame_id, isolated_keystroke.get_isolation_coordinates(), isolated_keystroke)
         self.keystroke_points.append(kpoint)
@@ -124,9 +126,7 @@ class IsolatedKeystroke(object):
     def get_isolation_coordinates(self):
         return (self.kisolation_xmin, self.kisolation_ymin, self.kisolation_xmax, self.kisolation_ymax)
 
-# a KeystrokePoint contains one or more KUnit (isolated_keystroke), and is used to train HMM for search-space reduction
-
-
+# KeystrokePoint class contains one or more KUnit (isolated_keystroke), and is used to train HMM for search-space reduction
 class KeystrokePoint(object):
     id = ""
     last_detection_coordinates = ()  # xmin, ymin, xmax, ymax
@@ -142,12 +142,16 @@ class KeystrokePoint(object):
         self.kunits = []
 
     def keytext_in_consensus(self):
-        keytexts = []
+        keytexts = defaultdict(list)
+
         for k in self.kunits:
             conf, text = k.get_character()
-            keytexts.append({'conf': conf, 'text': text})
-        print(keytexts)
+            keytexts[text].append(conf)
 
+        # print(keytexts)
+        text, confidences = max(keytexts.items(), key=operator.itemgetter(1))
+
+        return text, (sum(confidences)/len(confidences))
 
     def add_keystroke_unit(self, frame_id, last_detection_coordinates, isolated_keystroke):
         self.k_vanish = frame_id
@@ -160,7 +164,7 @@ class KeystrokePoint(object):
         keyhold = (self.k_vanish - self.k_appear) / 2
         keydelay = (self.k_vanish - self.k_appear)
 
-        self.keytext_in_consensus()
+        keytext, confidence = self.keytext_in_consensus()
 
         return {
             'id': self.id,
@@ -168,9 +172,10 @@ class KeystrokePoint(object):
             'keypress': keypress,
             'keyrelease': keyrelease,
             'keyhold': keyhold,
-            'keydelay': keydelay
+            'keydelay': keydelay,
+            'keytext': keytext,
+            'ocr_conf': confidence
         }
-
 
 #initialize color map
 cmap = plt.get_cmap('tab20b')
@@ -431,7 +436,7 @@ def extract_keystrokes_detector(video_path):
                     # print("Isolation Coordinate (x, y): ", floor(keystroke.kisolation_xmin), floor(keystroke.kisolation_ymin))
                     keypoint = camstroke.store_keystroke_timing(
                         frame_id, keystroke)
-                    keypoint.get_timing_data()
+                    print(keypoint.get_timing_data())
 
                 # keystroke_image = keystroke.to_image()
                 # keystroke_image.show()
