@@ -13,16 +13,18 @@ from pytesseract import Output
 import uuid
 
 # if the next detected keystroke is +- around the last detected keystroke's x coordinate, the detection result is considered to be for the same detection attempt as the previous
-DETECTION_SENSITIVITY = 5 # in pixels, alternatively we can use the font size
+DETECTION_SENSITIVITY = 5  # in pixels, alternatively we can use the font size
+
 
 class Camstroke(object):
     last_cursor_position = (0, 0, 0, 0)  # xmin, ymin, xmax, ymax
     recorded_fontsizes = []
 
     # attributes of Camstroke data objects
-    detected_cursors = [] # object contains data from cursor detection
-    isolated_keystrokes = [] # object contains data from keystroke isolation and OCR conversion
-    keystroke_points = [] # object contains timing data for Hidden Markov Model learning
+    detected_cursors = []  # object contains data from cursor detection
+    # object contains data from keystroke isolation and OCR conversion
+    isolated_keystrokes = []
+    keystroke_points = []  # object contains timing data for Hidden Markov Model learning
 
     def get_avg_fontsize(self):
         return calc_average(self.recorded_fontsizes)
@@ -36,7 +38,7 @@ class Camstroke(object):
             merged['est_fontsize'] = font_size
             keystroke_data.append(merged)
         return keystroke_data
-    
+
     def store_keystroke_timing(self, frame_id, isolated_keystroke):
         if len(self.keystroke_points) > 0:
             last_kpoint = self.keystroke_points[-1]
@@ -44,16 +46,20 @@ class Camstroke(object):
             if abs(isolated_keystroke.kisolation_xmin - last_xmin) <= DETECTION_SENSITIVITY:
                 print("Using Last KeystrokePoint with ID: ", last_kpoint.id)
                 print("Kunits: ", len(last_kpoint.kunits))
-                last_kpoint.add_keystroke_unit(frame_id, isolated_keystroke.get_isolation_coordinates(), isolated_keystroke)
+                last_kpoint.add_keystroke_unit(
+                    frame_id, isolated_keystroke.get_isolation_coordinates(), isolated_keystroke)
                 return last_kpoint
 
-        kpoint = KeystrokePoint(frame_id, isolated_keystroke.get_isolation_coordinates())
+        kpoint = KeystrokePoint(
+            frame_id, isolated_keystroke.get_isolation_coordinates())
         print("Creating New KeystrokePoint with ID: ", kpoint.id)
         print("Kunits: ", len(kpoint.kunits))
-        kpoint.add_keystroke_unit(frame_id, isolated_keystroke.get_isolation_coordinates(), isolated_keystroke)
+        kpoint.add_keystroke_unit(
+            frame_id, isolated_keystroke.get_isolation_coordinates(), isolated_keystroke)
         self.keystroke_points.append(kpoint)
         return kpoint
-        
+
+
 class DetectedCursor(object):
     detection_id = ""
     frame_id = ""
@@ -64,6 +70,7 @@ class DetectedCursor(object):
     bbox_ymax = 0
     bbox_w = 0
     bbox_h = 0
+
     def __init__(self, detection_id, frame_id, score, bbox_xmin, bbox_ymin, bbox_xmax, bbox_ymax, bbox_w, bbox_h):
         self.detection_id = detection_id
         self.frame_id = frame_id
@@ -75,7 +82,8 @@ class DetectedCursor(object):
         self.bbox_w = bbox_w
         self.bbox_h = bbox_h
         return
-        
+
+
 class IsolatedKeystroke(object):
     frame_id = -1
     kisolation_frame = None
@@ -86,6 +94,7 @@ class IsolatedKeystroke(object):
     kisolation_ymin = 0
     kisolation_ymax = 0
     ocr_result = None
+
     def __init__(self, frame_id, kisolation_frame, kisolation_xmin, kisolation_xmax, kisolation_ymin, kisolation_ymax, kisolation_w, kisolation_h):
         self.frame_id = frame_id
         self.kisolation_frame = kisolation_frame
@@ -96,8 +105,10 @@ class IsolatedKeystroke(object):
         self.kisolation_ymin = kisolation_ymin
         self.kisolation_ymax = kisolation_ymax
         return
+
     def to_image(self):
         return Image.fromarray(self.kisolation_frame)
+
     def get_character(self):
         index = np.argmax(self.ocr_result['conf'])
         if int(self.ocr_result['conf'][index]) < OCR_CONF_THRESHOLD:
@@ -109,18 +120,21 @@ class IsolatedKeystroke(object):
                 return None, None
             else:
                 return conf, text
+
     def get_isolation_coordinates(self):
         return (self.kisolation_xmin, self.kisolation_ymin, self.kisolation_xmax, self.kisolation_ymax)
 
 # a KeystrokePoint contains one or more KUnit (isolated_keystroke), and is used to train HMM for search-space reduction
+
+
 class KeystrokePoint(object):
     id = ""
-    last_detection_coordinates = () # xmin, ymin, xmax, ymax
+    last_detection_coordinates = ()  # xmin, ymin, xmax, ymax
     kunits = []
 
-    k_appear = 0 # when the keystroke first appears on the frames, a substitution for KeyPress timing
-    k_vanish = 0 # when the keystroke last appears on the frames, a substitution for KeyRelease timing
-    
+    k_appear = 0  # when the keystroke first appears on the frames, a substitution for KeyPress timing
+    k_vanish = 0  # when the keystroke last appears on the frames, a substitution for KeyRelease timing
+
     def __init__(self, frame_id, last_detection_coordinates):
         self.id = uuid.uuid4()
         self.k_appear = frame_id
@@ -128,9 +142,12 @@ class KeystrokePoint(object):
         self.kunits = []
 
     def keytext_in_consensus(self):
-        for isolated_keystroke in self.kunits:
-            conf, keytext = isolated_keystroke.get_character()
-            print(conf, keytext)
+        keytexts = []
+        for k in self.kunits:
+            conf, text = k.get_character()
+            keytexts.append({'conf': conf, 'text': text})
+        print(keytexts)
+
 
     def add_keystroke_unit(self, frame_id, last_detection_coordinates, isolated_keystroke):
         self.k_vanish = frame_id
@@ -153,6 +170,7 @@ class KeystrokePoint(object):
             'keyhold': keyhold,
             'keydelay': keydelay
         }
+
 
 #initialize color map
 cmap = plt.get_cmap('tab20b')
@@ -178,32 +196,42 @@ INVALID_KEYSTROKE = ["|", "="]
 # path to weight for cursor tracker
 WEIGHT_PATH = "checkpoints/camstroke-yolov4-416"
 
+
 def save_keystroke_data(output_path, keystrokes):
     with open(output_path, mode='w') as csv_file:
-        fieldnames = ['detection_id', 'score', 'frame_id', 'est_fontsize', 'bbox_xmin', 'bbox_xmax', 'bbox_ymin', 'bbox_ymax', 'bbox_w', 'bbox_h', 'kisolation_w', 'kisolation_h']
-        writer = csv.DictWriter(csv_file, fieldnames=fieldnames, extrasaction='ignore')
+        fieldnames = ['detection_id', 'score', 'frame_id', 'est_fontsize', 'bbox_xmin',
+                      'bbox_xmax', 'bbox_ymin', 'bbox_ymax', 'bbox_w', 'bbox_h', 'kisolation_w', 'kisolation_h']
+        writer = csv.DictWriter(
+            csv_file, fieldnames=fieldnames, extrasaction='ignore')
         writer.writeheader()
         writer.writerows(keystrokes)
-        
+
+
 def normalize_bbox_size(xmin, ymin, xmax, ymax):
     norm = 0.2
     return (xmin + (xmin * norm), ymin, xmax - (xmax * norm), ymax)
 
+
 def pt_to_px(pt):
     return pt * PT2PX_SIZE_FACTOR
 
+
 def px_to_inch(px, PPI):
     return px / PPI
+
 
 def get_cursor_height(cursor_ymax, cursor_ymin):
     return cursor_ymax - cursor_ymin
 
 # automatically detect the font size of the letter based on cursor size
+
+
 def calc_fontsize(cursor_ymax, cursor_ymin, PPI):
     cursor_height = get_cursor_height(cursor_ymax, cursor_ymin)
     font_size_inch = px_to_inch(cursor_height, PPI)
     font_size_pt = font_size_inch * PT2INCH_SIZE_FACTOR
     return int(font_size_pt)
+
 
 def calc_ppi(screen_w, screen_h, screen_size_inch):
     # from https://superuser.com/questions/1085734/how-do-i-know-the-dpi-of-my-laptop-screen
@@ -211,14 +239,17 @@ def calc_ppi(screen_w, screen_h, screen_size_inch):
     PPI = sqrt(pow(screen_w, 2) + pow(screen_h, 2)) / screen_size_inch
     return PPI
 
+
 def calc_average(arr):
     return sum(arr) / len(arr)
+
 
 def get_video_size(video_path):
     vid = cv2.VideoCapture(video_path)
     height = vid.get(cv2.CAP_PROP_FRAME_HEIGHT)
     width = vid.get(cv2.CAP_PROP_FRAME_WIDTH)
     return (width, height)
+
 
 def isolate_keystroke(frame, font_size, cursor_xmin, cursor_ymin, cursor_xmax, cursor_ymax, crop=False):
     image = Image.fromarray(frame)
@@ -240,11 +271,13 @@ def isolate_keystroke(frame, font_size, cursor_xmin, cursor_ymin, cursor_xmax, c
     if crop:
         # the bounding box will be cropped and returned as a frame
         frame = np.asarray(image.crop(crop_range))
-    else: 
+    else:
         # the bounding box will be drawn inside the frame istead of cropped, returned   as a frame
-        frame =  draw_bbox(frame, crop_range[0], crop_range[1], crop_range[2], crop_range[3])
+        frame = draw_bbox(
+            frame, crop_range[0], crop_range[1], crop_range[2], crop_range[3])
 
     return frame, crop_range, isolation_width, isolation_height
+
 
 def do_OCR(keystroke, enhance=True, pad=True):
     im = keystroke.kisolation_frame
@@ -254,7 +287,8 @@ def do_OCR(keystroke, enhance=True, pad=True):
     if enhance:
         # resize image
         RESIZE_FACTOR = 1.5
-        im = cv2.resize(im, None, fx=RESIZE_FACTOR, fy=RESIZE_FACTOR, interpolation=cv2.INTER_CUBIC)
+        im = cv2.resize(im, None, fx=RESIZE_FACTOR,
+                        fy=RESIZE_FACTOR, interpolation=cv2.INTER_CUBIC)
 
         # convert image to grayscale
         im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
@@ -269,7 +303,8 @@ def do_OCR(keystroke, enhance=True, pad=True):
         # im = cv2.adaptiveThreshold(cv2.medianBlur(im, 3), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
 
         # applying normal blur
-        im = cv2.threshold(cv2.medianBlur(im, 3), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+        im = cv2.threshold(cv2.medianBlur(im, 3), 0, 255,
+                           cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
         # im = cv2.threshold(cv2.bilateralFilter(im, 5, 75, 75), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
         # im = cv2.threshold(cv2.GaussianBlur(im, (5, 5), 0), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
 
@@ -283,19 +318,24 @@ def do_OCR(keystroke, enhance=True, pad=True):
         im = pad_image(im, target_size=50)
 
     # return im, pytesseract.image_to_string(im, config='--psm 10').strip()
-    return im, pytesseract.image_to_data(im, output_type=Output.DICT , config='--psm 10 --oem 3')
+    return im, pytesseract.image_to_data(im, output_type=Output.DICT, config='--psm 10 --oem 3')
+
 
 def draw_bbox(frame, xmin, ymin, xmax, ymax):
     color = colors[random.randint(0, len(colors) - 1)]
     color = [i * 255 for i in color]
-    cv2.rectangle(frame, (int(xmin), int(ymin)), (int(xmax), int(ymax)), color, 2)
+    cv2.rectangle(frame, (int(xmin), int(ymin)),
+                  (int(xmax), int(ymax)), color, 2)
     return frame
 
+
 def frame_to_video(frames, output_path, w, h):
-    out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (w, h))
+    out = cv2.VideoWriter(
+        output_path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (w, h))
     for frame in frames:
         out.write(frame)
     out.release()
+
 
 def pad_image(image, target_size=100):
     padded_image = ImageOps.expand(image, target_size, 'black')
@@ -317,10 +357,11 @@ def pad_image(image, target_size=100):
 #         camstroke.recorded_fontsizes.append(font_size)
 
 #         keystroke_image = isolate_keystroke(frame, camstroke.get_avg_fontsize(), xmin, ymin, xmax, ymax, crop=True)
-        # keystroke_image.show()
-        # ocr = do_OCR(keystroke_image)
-        # keystroke_image.save(fp="results/{}.png".format(frame_num))
-        # print("Detected: ", ocr)
+    # keystroke_image.show()
+    # ocr = do_OCR(keystroke_image)
+    # keystroke_image.save(fp="results/{}.png".format(frame_num))
+    # print("Detected: ", ocr)
+
 
 def extract_keystrokes_detector(video_path):
     camstroke = Camstroke()
@@ -334,7 +375,7 @@ def extract_keystrokes_detector(video_path):
     for i, detected in enumerate(cursor_detector.detect_cursor(video_path, WEIGHT_PATH, score_threshold=0.20)):
         frame, frame_id, pred_result = detected
         image_h, image_w, _ = frame.shape
-        
+
         # for fast-testing
         # if frame_id >= 500:
         #     break
@@ -362,19 +403,23 @@ def extract_keystrokes_detector(video_path):
                 camstroke.last_cursor_position = (xmin, ymin, xmax, ymax)
                 camstroke.recorded_fontsizes.append(font_size)
 
-                detected_cursor = DetectedCursor(i, frame_id, scores[0][i], xmin, ymin, xmax, ymax, bbox_w, bbox_h)
+                detected_cursor = DetectedCursor(
+                    i, frame_id, scores[0][i], xmin, ymin, xmax, ymax, bbox_w, bbox_h)
 
-                isolated_frame, isolation_coordinate, isolated_width, isolated_height = isolate_keystroke(frame, camstroke.get_avg_fontsize(), xmin, ymin, xmax, ymax, crop=True) # change crop to False to draw isolation box instead of cropping it
+                isolated_frame, isolation_coordinate, isolated_width, isolated_height = isolate_keystroke(frame, camstroke.get_avg_fontsize(
+                ), xmin, ymin, xmax, ymax, crop=True)  # change crop to False to draw isolation box instead of cropping it
 
                 isolated_xmin, isolated_ymin, isolated_xmax, isolated_ymax = isolation_coordinate
 
-                keystroke = IsolatedKeystroke(frame_id, isolated_frame, isolated_xmin, isolated_ymin, isolated_xmax, isolated_ymax, isolated_width, isolated_height)
+                keystroke = IsolatedKeystroke(frame_id, isolated_frame, isolated_xmin,
+                                              isolated_ymin, isolated_xmax, isolated_ymax, isolated_width, isolated_height)
 
                 # save both detection and isolation data
                 camstroke.detected_cursors.append(detected_cursor)
                 camstroke.isolated_keystrokes.append(keystroke)
 
-                keystroke_image, ocr_result = do_OCR(keystroke, enhance=True, pad=False)
+                keystroke_image, ocr_result = do_OCR(
+                    keystroke, enhance=True, pad=False)
                 # print("OCR Result: ", ocr_result)
 
                 keystroke.ocr_result = ocr_result
@@ -384,21 +429,23 @@ def extract_keystrokes_detector(video_path):
                     temp += keytext
                     # print("Detected: ", temp)
                     # print("Isolation Coordinate (x, y): ", floor(keystroke.kisolation_xmin), floor(keystroke.kisolation_ymin))
-                    keypoint = camstroke.store_keystroke_timing(frame_id, keystroke)
-                    print(keypoint.get_timing_data())
+                    keypoint = camstroke.store_keystroke_timing(
+                        frame_id, keystroke)
+                    keypoint.get_timing_data()
 
                 # keystroke_image = keystroke.to_image()
                 # keystroke_image.show()
                 # keystroke_image.save(fp="results/{}_{}.png".format(frame_id, ocr_result))
         else:
             consecutive_streak = 0
-    
+
     # save detection and isolation data to a file
     # save_keystroke_data('keystrokes.csv', camstroke.get_camstroke_detection_data())
 
     # save isolation bounding boxes to video format
     # frames = [f.kisolation_frame for f in camstroke.isolated_keystrokes]
     # frame_to_video(frames, 'output.avi', image_w, image_h)
+
 
 def loop_dataset():
     sizes = [14, 16, 18, 20, 22]
@@ -407,10 +454,12 @@ def loop_dataset():
         print("Extracting from {}".format(video_path))
         extract_keystrokes_detector(video_path)
 
+
 def main():
     video_path = "../Datasets/vscode_cut.mp4"
     print("Extracting from {}".format(video_path))
     extract_keystrokes_detector(video_path)
+
 
 if __name__ == '__main__':
     # loop_dataset()
