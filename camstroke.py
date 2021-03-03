@@ -229,8 +229,6 @@ def get_cursor_height(cursor_ymax, cursor_ymin):
     return cursor_ymax - cursor_ymin
 
 # automatically detect the font size of the letter based on cursor size
-
-
 def calc_fontsize(cursor_ymax, cursor_ymin, PPI):
     cursor_height = get_cursor_height(cursor_ymax, cursor_ymin)
     font_size_inch = px_to_inch(cursor_height, PPI)
@@ -431,12 +429,12 @@ def extract_keystrokes_detector(video_path):
                 conf, keytext = keystroke.get_character()
 
                 if keytext != None:
-                    temp += keytext
                     # print("Detected: ", temp)
                     # print("Isolation Coordinate (x, y): ", floor(keystroke.kisolation_xmin), floor(keystroke.kisolation_ymin))
                     keypoint = camstroke.store_keystroke_timing(
                         frame_id, keystroke)
-                    print(keypoint.get_timing_data())
+                    timing_data = keypoint.get_timing_data()
+                    print(timing_data)
 
                 # keystroke_image = keystroke.to_image()
                 # keystroke_image.show()
