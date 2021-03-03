@@ -8,19 +8,20 @@ import matplotlib.pyplot as plt
 import random
 import numpy as np
 import csv
+import itertools
 from pytesseract import Output
 
 # if the next detected keystroke is +- around the last detected keystroke's x coordinate, the detection result is considered to be for the same detection attempt as the previous
 DETECTION_SENSITIVITY = 10 # in pixels, alternatively we can use the font size
 
 class Camstroke(object):
-    last_pos = (0, 0, 0, 0)  # xmin, ymin, xmax, ymax
+    last_cursor_position = (0, 0, 0, 0)  # xmin, ymin, xmax, ymax
     recorded_fontsizes = []
 
-    # Attributes for every Camstroke detection data
-    detected_cursors = []
-    isolated_keystrokes = []
-    keystroke_points = []
+    # attributes of Camstroke data objects
+    detected_cursors = [] # object contains data from cursor detection
+    isolated_keystrokes = [] # object contains data from keystroke isolation and OCR conversion
+    keystroke_points = [] # object contains timing data for Hidden Markov Model learning
 
     def get_avg_fontsize(self):
         return calc_average(self.recorded_fontsizes)
@@ -35,18 +36,18 @@ class Camstroke(object):
             keystroke_data.append(merged)
         return keystroke_data
     
-    def add_keystroke_unit(self, isolated_keystroke):
+    def store_keystroke_timing(self, frame_id, isolated_keystroke):
         if len(self.keystroke_points) > 0:
             last_kpoint = self.keystroke_points[-1]
             last_xmin, _, _, _ = last_kpoint.last_detection_coordinates
             if abs(isolated_keystroke.kisolation_xmin - last_xmin) <= DETECTION_SENSITIVITY:
-                last_kpoint.append_keystroke(isolated_keystroke)
+                last_kpoint.add_keystroke_unit(frame_id, isolated_keystroke.get_isolation_coordinates(), isolated_keystroke)
                 return last_kpoint
-        curr_xmin, curr_ymin, curr_xmax, curr_ymax = (isolated_keystroke.kisolation_xmin, isolated_keystroke.kisolation_ymin, isolated_keystroke.kisolation_xmax, isolated_keystroke.kisolation_ymax)
 
-        kpoint = KeystrokePoint(curr_xmin, curr_ymin, curr_xmax, curr_ymax)
-        kpoint.append_keystroke(isolated_keystroke)
+        kpoint = KeystrokePoint(frame_id, isolated_keystroke.get_isolation_coordinates())
+        kpoint.add_keystroke_unit(frame_id, isolated_keystroke.get_isolation_coordinates(), isolated_keystroke)
         self.keystroke_points.append(kpoint)
+        return kpoint
         
 class DetectedCursor(object):
     detection_id = ""
@@ -102,6 +103,8 @@ class IsolatedKeystroke(object):
                 return None
             else:
                 return text
+    def get_isolation_coordinates(self):
+        return (self.kisolation_xmin, self.kisolation_ymin, self.kisolation_xmax, self.kisolation_ymax)
 
 # a KeystrokePoint contains one or more KUnit (isolated_keystroke), and is used to train HMM for search-space reduction
 class KeystrokePoint(object):
@@ -111,8 +114,28 @@ class KeystrokePoint(object):
     k_appear = 0 # when the keystroke first appears on the frames, a substitution for KeyPress timing
     k_vanish = 0 # when the keystroke last appears on the frames, a substitution for KeyRelease timing
     
-    def append_keystroke(self, isolated_keystroke):
+    def __init__(self, frame_id, last_detection_coordinates):
+        self.k_appear = frame_id
+        self.last_detection_coordinates = last_detection_coordinates
+
+    def add_keystroke_unit(self, frame_id, last_detection_coordinates, isolated_keystroke):
+        self.k_vanish = frame_id
+        self.last_detection_coordinates = last_detection_coordinates
         self.kunits.append(isolated_keystroke)
+
+    def get_timing_data(self):
+        keypress = self.k_appear
+        keyrelease = self.k_vanish
+        keyhold = (self.k_vanish - self.k_appear) / 2
+        keydelay = (self.k_vanish - self.k_appear)
+
+        return {
+            'kunits': self.kunits,
+            'keypress': keypress,
+            'keyrelease': keyrelease,
+            'keyhold': keyhold,
+            'keydelay': keydelay
+        }
 
 #initialize color map
 cmap = plt.get_cmap('tab20b')
@@ -273,7 +296,7 @@ def pad_image(image, target_size=100):
 #         im = Image.fromarray(frame)
 #         font_size = calc_fontsize(ymax, ymin, PPI)
 
-#         camstroke.last_pos = (xmin, ymin, xmax, ymax)
+#         camstroke.last_cursor_position = (xmin, ymin, xmax, ymax)
 #         camstroke.recorded_fontsizes.append(font_size)
 
 #         keystroke_image = isolate_keystroke(frame, camstroke.get_avg_fontsize(), xmin, ymin, xmax, ymax, crop=True)
@@ -319,7 +342,7 @@ def extract_keystrokes_detector(video_path):
                 bbox_h = ymax - ymin
 
                 font_size = calc_fontsize(ymax, ymin, PPI)
-                camstroke.last_pos = (xmin, ymin, xmax, ymax)
+                camstroke.last_cursor_position = (xmin, ymin, xmax, ymax)
                 camstroke.recorded_fontsizes.append(font_size)
 
                 detected_cursor = DetectedCursor(i, frame_id, scores[0][i], xmin, ymin, xmax, ymax, bbox_w, bbox_h)
@@ -343,9 +366,9 @@ def extract_keystrokes_detector(video_path):
                 if key != None:
                     temp += key
                     print("Detected: ", temp)
-                    print("Last coordinate:", floor(keystroke.kisolation_xmin), floor(keystroke.kisolation_ymin))
-
-                    
+                    print("Isolation Coordinate (x, y): ", floor(keystroke.kisolation_xmin), floor(keystroke.kisolation_ymin))
+                    keypoint = camstroke.store_keystroke_timing(frame_id, keystroke)
+                    print(keypoint.get_timing_data())
 
                 # keystroke_image = keystroke.to_image()
                 # keystroke_image.show()
@@ -353,7 +376,10 @@ def extract_keystrokes_detector(video_path):
         else:
             consecutive_streak = 0
     
+    # save detection and isolation data to a file
     # save_keystroke_data('keystrokes.csv', camstroke.get_camstroke_detection_data())
+
+    # save isolation bounding boxes to video format
     # frames = [f.kisolation_frame for f in camstroke.isolated_keystrokes]
     # frame_to_video(frames, 'output.avi', image_w, image_h)
 
