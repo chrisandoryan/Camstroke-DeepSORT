@@ -12,10 +12,7 @@ from pytesseract import Output
 import uuid
 from collections import defaultdict
 import operator
-
-# if the next detected keystroke is +- around the last detected keystroke's x coordinate, the detection result is considered to be for the same detection attempt as the previous
-DETECTION_SENSITIVITY = 5  # in pixels, alternatively we can use the font size
-
+from helpers import constants
 
 class Camstroke(object):
     last_cursor_position = (0, 0, 0, 0)  # xmin, ymin, xmax, ymax
@@ -44,7 +41,7 @@ class Camstroke(object):
         if len(self.keystroke_points) > 0:
             last_kpoint = self.keystroke_points[-1]
             last_xmin, _, _, _ = last_kpoint.last_detection_coordinates
-            if abs(isolated_keystroke.kisolation_xmin - last_xmin) <= DETECTION_SENSITIVITY:
+            if abs(isolated_keystroke.kisolation_xmin - last_xmin) <= constants.DETECTION_SENSITIVITY:
                 # print("Using Last KeystrokePoint with ID: ", last_kpoint.id)
                 # print("Kunits: ", len(last_kpoint.kunits))
                 last_kpoint.add_keystroke_unit(
@@ -112,12 +109,12 @@ class IsolatedKeystroke(object):
 
     def get_character(self):
         index = np.argmax(self.ocr_result['conf'])
-        if int(self.ocr_result['conf'][index]) < OCR_CONF_THRESHOLD:
+        if int(self.ocr_result['conf'][index]) < constants.OCR_CONF_THRESHOLD:
             return None, None
         else:
             text = self.ocr_result['text'][index]
             conf = self.ocr_result['conf'][index]
-            if text in INVALID_KEYSTROKE:
+            if text in constants.INVALID_KEYSTROKE:
                 return None, None
             else:
                 return conf, text
@@ -180,26 +177,6 @@ class KeystrokePoint(object):
 cmap = plt.get_cmap('tab20b')
 colors = [cmap(i)[:3] for i in np.linspace(0, 1, 20)]
 
-# 1pt is 1/72 * inch
-# https://www.quora.com/How-is-font-size-measured
-PT2INCH_SIZE_FACTOR = 72
-
-# 1 pt is 1.328147px
-# https://everythingfonts.com/font/tools/units/pt-to-px
-PT2PX_SIZE_FACTOR = 1  # 1.328147
-
-# how many cursor detections required to determine the average font size
-FONT_SIZE_CONSENSUS = 100
-
-# minimum confidence value for OCR detection
-OCR_CONF_THRESHOLD = 10
-
-# list of insignificant/invalid keystrokes that needs to be ignored
-INVALID_KEYSTROKE = ["|", "="]
-
-# path to weight for cursor tracker
-WEIGHT_PATH = "./yolo_deepsort/checkpoints/camstroke-yolov4-416"
-
 
 def save_keystroke_data(output_path, keystrokes):
     with open(output_path, mode='w') as csv_file:
@@ -217,7 +194,7 @@ def normalize_bbox_size(xmin, ymin, xmax, ymax):
 
 
 def pt_to_px(pt):
-    return pt * PT2PX_SIZE_FACTOR
+    return pt * constants.PT2PX_SIZE_FACTOR
 
 
 def px_to_inch(px, PPI):
@@ -231,7 +208,7 @@ def get_cursor_height(cursor_ymax, cursor_ymin):
 def calc_fontsize(cursor_ymax, cursor_ymin, PPI):
     cursor_height = get_cursor_height(cursor_ymax, cursor_ymin)
     font_size_inch = px_to_inch(cursor_height, PPI)
-    font_size_pt = font_size_inch * PT2INCH_SIZE_FACTOR
+    font_size_pt = font_size_inch * constants.PT2INCH_SIZE_FACTOR
     return int(font_size_pt)
 
 
@@ -350,7 +327,7 @@ def pad_image(image, target_size=100):
 #     vwidth, vheight = get_video_size(video_path)
 #     PPI = calc_ppi(vwidth, vheight, screen_size_inch=13.3)
 
-#     for i, tracked in enumerate(cursor_tracker.track_cursor(video_path, WEIGHT_PATH, draw_bbox=True)):
+#     for i, tracked in enumerate(cursor_tracker.track_cursor(video_path, constants.WEIGHT_PATH, draw_bbox=True)):
 #         frame, frame_num, xmin, ymin, xmax, ymax = tracked
 #         im = Image.fromarray(frame)
 #         font_size = calc_fontsize(ymax, ymin, PPI)
@@ -374,7 +351,7 @@ def extract_keystrokes_detector(video_path):
     vwidth, vheight = get_video_size(video_path)
     PPI = calc_ppi(vwidth, vheight, screen_size_inch=13.3)
 
-    for i, detected in enumerate(cursor_detector.detect_cursor(video_path, WEIGHT_PATH, score_threshold=0.20)):
+    for i, detected in enumerate(cursor_detector.detect_cursor(video_path, constants.WEIGHT_PATH, score_threshold=0.20)):
         frame, frame_id, pred_result = detected
         image_h, image_w, _ = frame.shape
 
