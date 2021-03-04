@@ -1,5 +1,4 @@
-import cursor_tracker
-import cursor_detector
+from yolo_deepsort import cursor_tracker, cursor_detector
 from PIL import Image, ImageOps
 import cv2
 import pytesseract
@@ -199,7 +198,7 @@ OCR_CONF_THRESHOLD = 10
 INVALID_KEYSTROKE = ["|", "="]
 
 # path to weight for cursor tracker
-WEIGHT_PATH = "checkpoints/camstroke-yolov4-416"
+WEIGHT_PATH = "./yolo_deepsort/checkpoints/camstroke-yolov4-416"
 
 
 def save_keystroke_data(output_path, keystrokes):
