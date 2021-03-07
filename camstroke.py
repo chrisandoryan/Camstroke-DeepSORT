@@ -13,6 +13,7 @@ import uuid
 from collections import defaultdict
 import operator
 from helpers import constants
+# import hmm.hidden_markov as hmm
 
 class Camstroke(object):
     last_cursor_position = (0, 0, 0, 0)  # xmin, ymin, xmax, ymax
@@ -356,8 +357,8 @@ def extract_keystrokes_detector(video_path):
         image_h, image_w, _ = frame.shape
 
         # for fast-testing
-        # if frame_id >= 500:
-        #     break
+        if frame_id >= 100:
+            break
 
         boxes, scores, classes, valid_detections = pred_result
         if valid_detections[0] > 0:
@@ -424,6 +425,12 @@ def extract_keystrokes_detector(video_path):
     # save isolation bounding boxes to video format
     # frames = [f.kisolation_frame for f in camstroke.isolated_keystrokes]
     # frame_to_video(frames, 'output.avi', image_w, image_h)
+
+    # pass data to hmm learning
+    keystroke_points = camstroke.keystroke_points
+    print(keystroke_points)
+    # hmm.train(keystroke_points)
+
 
 
 def loop_dataset():

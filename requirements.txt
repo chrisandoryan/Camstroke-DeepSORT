@@ -7,3 +7,4 @@ easydict
 matplotlib
 pillow
 pohmm
+numpy==1.18.5

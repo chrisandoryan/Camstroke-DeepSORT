@@ -176,6 +176,8 @@ def verification(df):
 
         train, test = genuine_samples[150:200], genuine_samples[200:]
 
+        print(train)
+
         pohmm = keystroke_model()
         pohmm.fit_df(train)
 
