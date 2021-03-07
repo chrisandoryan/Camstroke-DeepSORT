@@ -13,7 +13,7 @@ import uuid
 from collections import defaultdict
 import operator
 from helpers import constants
-# import hmm.hidden_markov as hmm
+import hmm.hidden_markov as hmm
 
 class Camstroke(object):
     last_cursor_position = (0, 0, 0, 0)  # xmin, ymin, xmax, ymax
@@ -125,16 +125,12 @@ class IsolatedKeystroke(object):
 
 # KeystrokePoint class contains one or more KUnit (isolated_keystroke), and is used to train HMM for search-space reduction
 class KeystrokePoint(object):
-    id = ""
-    last_detection_coordinates = ()  # xmin, ymin, xmax, ymax
-    kunits = []
-
-    k_appear = 0  # when the keystroke first appears on the frames, a substitution for KeyPress timing
-    k_vanish = 0  # when the keystroke last appears on the frames, a substitution for KeyRelease timing
-
     def __init__(self, frame_id, last_detection_coordinates):
         self.id = uuid.uuid4()
+        # when the keystroke first appears on the frames, a substitution for KeyPress timing
         self.k_appear = frame_id
+        # when the keystroke last appears on the frames, a substitution for KeyRelease timing
+        self.k_vanish = 0
         self.last_detection_coordinates = last_detection_coordinates
         self.kunits = []
 
@@ -428,8 +424,8 @@ def extract_keystrokes_detector(video_path):
 
     # pass data to hmm learning
     keystroke_points = camstroke.keystroke_points
-    print(keystroke_points)
-    # hmm.train(keystroke_points)
+    # print(keystroke_points)
+    hmm.train(keystroke_points)
 
 
 
