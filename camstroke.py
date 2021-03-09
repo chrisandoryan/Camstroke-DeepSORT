@@ -13,17 +13,20 @@ import uuid
 from collections import defaultdict
 import operator
 from helpers import constants
-import hmm.hidden_markov as hmm
+import helpers.utils as utils
+import argparse
+
 
 class Camstroke(object):
-    last_cursor_position = (0, 0, 0, 0)  # xmin, ymin, xmax, ymax
-    recorded_fontsizes = []
-
-    # attributes of Camstroke data objects
-    detected_cursors = []  # object contains data from cursor detection
-    # object contains data from keystroke isolation and OCR conversion
-    isolated_keystrokes = []
-    keystroke_points = []  # object contains timing data for Hidden Markov Model learning
+    def __init__(self):
+        self.last_cursor_position = (0, 0, 0, 0)  # xmin, ymin, xmax, ymax
+        self.recorded_fontsizes = []
+        # attributes of Camstroke data objects
+        self.detected_cursors = []  # object contains data from cursor detection
+        # object contains data from keystroke isolation and OCR conversion
+        self.isolated_keystrokes = []
+        # object contains timing data for Hidden Markov Model learning
+        self.keystroke_points = []
 
     def get_avg_fontsize(self):
         return calc_average(self.recorded_fontsizes)
@@ -124,6 +127,8 @@ class IsolatedKeystroke(object):
         return (self.kisolation_xmin, self.kisolation_ymin, self.kisolation_xmax, self.kisolation_ymax)
 
 # KeystrokePoint class contains one or more KUnit (isolated_keystroke), and is used to train HMM for search-space reduction
+
+
 class KeystrokePoint(object):
     def __init__(self, frame_id, last_detection_coordinates):
         self.id = uuid.uuid4()
@@ -170,6 +175,7 @@ class KeystrokePoint(object):
             'ocr_conf': confidence
         }
 
+
 #initialize color map
 cmap = plt.get_cmap('tab20b')
 colors = [cmap(i)[:3] for i in np.linspace(0, 1, 20)]
@@ -202,6 +208,8 @@ def get_cursor_height(cursor_ymax, cursor_ymin):
     return cursor_ymax - cursor_ymin
 
 # automatically detect the font size of the letter based on cursor size
+
+
 def calc_fontsize(cursor_ymax, cursor_ymin, PPI):
     cursor_height = get_cursor_height(cursor_ymax, cursor_ymin)
     font_size_inch = px_to_inch(cursor_height, PPI)
@@ -293,8 +301,15 @@ def do_OCR(keystroke, enhance=True, pad=True):
     if pad:
         im = pad_image(im, target_size=50)
 
+    # basic configuration
     # return im, pytesseract.image_to_string(im, config='--psm 10').strip()
+
+    # if need to limit charset, use this instead:
+    # return im, pytesseract.image_to_data(im, output_type=Output.DICT, config='--psm 10 --oem 0 -c tessedit_char_whitelist=0123456789abcdefghijklmnopqrstuvwxyz')
+
+    # stable configuration
     return im, pytesseract.image_to_data(im, output_type=Output.DICT, config='--psm 10 --oem 3')
+    
 
 
 def draw_bbox(frame, xmin, ymin, xmax, ymax):
@@ -343,8 +358,6 @@ def extract_keystrokes_detector(video_path):
     camstroke = Camstroke()
     consecutive_streak = 0
 
-    temp = ""
-
     vwidth, vheight = get_video_size(video_path)
     PPI = calc_ppi(vwidth, vheight, screen_size_inch=13.3)
 
@@ -353,19 +366,19 @@ def extract_keystrokes_detector(video_path):
         image_h, image_w, _ = frame.shape
 
         # for fast-testing
-        if frame_id >= 100:
-            break
+        # if frame_id >= 100:
+        #     break
 
         boxes, scores, classes, valid_detections = pred_result
         if valid_detections[0] > 0:
             consecutive_streak += 1
-            print("Cons. Streak: ", consecutive_streak)
+            # print("Cons. Streak: ", consecutive_streak)
             for i in range(valid_detections[0]):
-                # print("Detection no. %d on Frame %d" % (i, frame_id))
-                # print("Score:", scores[0][i])
+                if frame_id % 10 == 0:
+                    print("Detection no. %d on Frame %d" % (i, frame_id))
+                    # print("Score:", scores[0][i])
 
                 coor = boxes[0][i]
-                # print("Coor: ", coor)
 
                 ymin = int(coor[0] * image_h)
                 ymax = int(coor[2] * image_h)
@@ -407,7 +420,7 @@ def extract_keystrokes_detector(video_path):
                     keypoint = camstroke.store_keystroke_timing(
                         frame_id, keystroke)
                     timing_data = keypoint.get_timing_data()
-                    print(timing_data)
+                    # print(timing_data)
 
                 # keystroke_image = keystroke.to_image()
                 # keystroke_image.show()
@@ -422,11 +435,13 @@ def extract_keystrokes_detector(video_path):
     # frames = [f.kisolation_frame for f in camstroke.isolated_keystrokes]
     # frame_to_video(frames, 'output.avi', image_w, image_h)
 
-    # pass data to hmm learning
-    keystroke_points = camstroke.keystroke_points
-    # print(keystroke_points)
-    hmm.train(keystroke_points)
+    # store camstroke data for further processing
+    utils.save_camstroke(camstroke, "results/camstroke.pkl")
 
+    # pass data to hmm learning
+    # keystroke_points = camstroke.keystroke_points
+    # print(keystroke_points)
+    # hmm.train(keystroke_points)
 
 
 def loop_dataset():
@@ -437,12 +452,30 @@ def loop_dataset():
         extract_keystrokes_detector(video_path)
 
 
-def main():
+def detect_extract():
     video_path = "../Datasets/vscode_cut.mp4"
     print("Extracting from {}".format(video_path))
     extract_keystrokes_detector(video_path)
 
 
+def learn_keystrokes():
+    camstroke = utils.load_camstroke("results/camstroke.pkl")
+    hmm.train(camstroke.keystroke_points)
+
+
 if __name__ == '__main__':
-    # loop_dataset()
-    main()
+    # Initialize parser
+    parser = argparse.ArgumentParser()
+
+    # Adding optional argument
+    parser.add_argument("mode", nargs='?', help="Run Camstroke in 'extract' or 'train' mode")
+
+    # Read arguments from command line
+    args = parser.parse_args()
+
+    if args.mode == "extract":
+        # loop_dataset()
+        detect_extract()
+    elif args.mode == "train":
+        import hmm.hidden_markov as hmm
+        learn_keystrokes()
