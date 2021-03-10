@@ -379,6 +379,7 @@ def extract_keystrokes_detector(video_path):
                     # print("Score:", scores[0][i])
 
                 coor = boxes[0][i]
+                # print("Coor: ", coor)
 
                 ymin = int(coor[0] * image_h)
                 ymax = int(coor[2] * image_h)
