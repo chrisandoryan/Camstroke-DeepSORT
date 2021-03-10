@@ -1,16 +1,17 @@
 from pohmm import Pohmm, PohmmClassifier
 import pandas as pd
 import numpy as np
-
+from helpers.utils import print_full
 
 def preprocess(kpoints):
     data = [kp.get_timing_data() for kp in kpoints]
     df = pd.DataFrame(data)
     df.set_index('id', inplace=True)
 
-    dataset = df[['keypress', 'keyrelease', 'keyhold', 'keydelay', 'keytext']].copy()
+    dataset = df[['keypress', 'keyrelease',
+                  'keyhold', 'keydelay', 'keytext']].copy()
     for col_name in dataset:
-        dataset.loc[df[col_name] == 0, col_name] = 0.01
+        dataset.loc[df[col_name] == 0, col_name] = 1e-5
 
     return dataset
 
@@ -29,18 +30,14 @@ def keystroke_model():
     return model
 
 
-def print_full(x):
-    pd.set_option('display.max_rows', len(x))
-    print(x)
-    pd.reset_option('display.max_rows')
-
-
 def train(kpoints):
-    model = keystroke_model()
+    hmm_model = keystroke_model()
     dataset = preprocess(kpoints)
 
     print_full(dataset)
-    model.fit_df([dataset], pstate_col='keytext')
+    hmm_model.fit_df([dataset], pstate_col='keytext')
 
-    np.set_printoptions(precision=3)
-    print(model)
+    # np.set_printoptions(precision=3)
+    # print(hmm_model)
+
+    return hmm_model

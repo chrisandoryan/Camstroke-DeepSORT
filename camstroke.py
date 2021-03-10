@@ -15,7 +15,7 @@ import operator
 from helpers import constants
 import helpers.utils as utils
 import argparse
-
+import hmm.viterbi_algorithm as viterbi
 
 class Camstroke(object):
     def __init__(self):
@@ -309,7 +309,6 @@ def do_OCR(keystroke, enhance=True, pad=True):
 
     # stable configuration
     return im, pytesseract.image_to_data(im, output_type=Output.DICT, config='--psm 10 --oem 3')
-    
 
 
 def draw_bbox(frame, xmin, ymin, xmax, ymax):
@@ -453,15 +452,17 @@ def loop_dataset():
         extract_keystrokes_detector(video_path)
 
 
-def detect_extract():
+def detect_and_extract():
     video_path = "../Datasets/vscode_cut.mp4"
     print("Extracting from {}".format(video_path))
     extract_keystrokes_detector(video_path)
 
 
-def learn_keystrokes():
+def train_and_predict():
     camstroke = utils.load_camstroke("results/camstroke.pkl")
-    hmm.train(camstroke.keystroke_points)
+    hmm_model = hmm.train(camstroke.keystroke_points)
+
+    prediction = viterbi.predict(hmm_model)
 
 
 if __name__ == '__main__':
@@ -469,14 +470,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # Adding optional argument
-    parser.add_argument("mode", nargs='?', help="Run Camstroke in 'extract' or 'train' mode")
+    parser.add_argument("mode", nargs='?',
+                        help="Run Camstroke in 'extract' or 'train' mode")
 
     # Read arguments from command line
     args = parser.parse_args()
 
     if args.mode == "extract":
         # loop_dataset()
-        detect_extract()
+        detect_and_extract()
     elif args.mode == "train":
         import hmm.hidden_markov as hmm
-        learn_keystrokes()
+        train_and_predict()
