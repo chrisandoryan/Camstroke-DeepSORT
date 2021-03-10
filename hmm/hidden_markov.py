@@ -26,12 +26,6 @@ def keystroke_model():
                   smoothing='freq',
                   init_method='obs',
                   thresh=1)
-    # model = Pohmm(n_hidden_states=2,
-    #               init_spread=2,
-    #               emissions=['lognormal'],
-    #               init_method='obs',
-    #               smoothing='freq',
-    #               random_state=1234)
     return model
 
 
@@ -45,23 +39,8 @@ def train(kpoints):
     model = keystroke_model()
     dataset = preprocess(kpoints)
 
-    print(dataset)
+    print_full(dataset)
     model.fit_df([dataset], pstate_col='keytext')
 
     np.set_printoptions(precision=3)
     print(model)
-
-    # TRAIN_OBS = [0.1 if x == 0 else x for x in (kpoints['keydelay'].values).astype(np.float)]
-    # TRAIN_PSTATES = list(kpoints['keytext'].values)
-
-    # TRAIN_OBS = [4, 1, 4, 2, 3, 1]
-    # TRAIN_PSTATES = ['b', 'a', 'b', 'a', 'c', 'a']
-
-    # print(TRAIN_OBS)
-    # print(TRAIN_PSTATES)
-
-    # model.fit([np.c_[TRAIN_OBS]], [TRAIN_PSTATES])
-    # model.fit_df(kpoints, pstate_col="")
-
-    # np.set_printoptions(precision=3)
-    # print(model)
