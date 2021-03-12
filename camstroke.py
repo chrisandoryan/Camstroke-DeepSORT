@@ -460,9 +460,9 @@ def detect_and_extract():
 
 def train_and_predict():
     camstroke = utils.load_camstroke("results/camstroke.pkl")
-    hmm_model = hmm.train(camstroke.keystroke_points)
-
-    prediction = viterbi.predict(hmm_model)
+    hmm_model, test_data = hmm.train(camstroke.keystroke_points)
+    
+    prediction = viterbi.predict(hmm_model, test_data)
 
 
 if __name__ == '__main__':

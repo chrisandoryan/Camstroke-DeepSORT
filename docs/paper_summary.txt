@@ -1,0 +1,9 @@
+Timing analysis of keystrokes and timing attacks on SSH
+1. perform statistical modelling for collected data (di paper dan thesis) -> gaussian modelling?
+2. timing characteristics:
+    Two letter keys typed with alternating hands, i.e., one with left hand and one with right hand; ?
+    Two characters containing one letter key and one number key typed with alternating hands;
+    Two letter keys, both typed with the same hand but with two different fingers;
+    Two letter keys typed with the same finger of the same hand;
+    Two characters containing one letter key and one number key, both typed with the same hand.
+3. 

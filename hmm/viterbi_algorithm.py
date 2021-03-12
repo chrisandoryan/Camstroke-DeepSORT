@@ -1,5 +1,10 @@
 import numpy as np
 
+"""
+Reference:
+https://stackoverflow.com/questions/9729968/python-implementation-of-viterbi-algorithm/9730083
+"""
+
 def viterbi(y, A, B, Pi=None):
     """
     Return the MAP estimate of state trajectory of Hidden Markov Model.
@@ -53,6 +58,17 @@ def viterbi(y, A, B, Pi=None):
 
     return x, T1, T2
 
-def predict(hmm_model):
-    print(hmm_model)
+def predict(hmm_model, test_data):    
+    # print("Emissions: ", hmm_model.emission)
+    emission_mat = []
+    for x in hmm_model.emission:
+        emission_mat.append(hmm_model.emission[x]['logsigma'])
+    # print("Emission Matrix: ", emission_mat)
+    
+    transition_mat = hmm_model.transmat
+    print("State Transitions: ", hmm_model.transmat)
+
+    prediction = viterbi([test_data.values], transition_mat, emission_mat)
+    print(prediction)
+
     return

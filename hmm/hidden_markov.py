@@ -15,6 +15,10 @@ def preprocess(kpoints):
 
     return dataset
 
+def split_dataset(dataset, split_factor=0.7):
+    dataset = dataset[:int(len(dataset)/3)]
+    train_data, test_data = dataset[:int(len(dataset)*split_factor)], dataset[int(len(dataset)*split_factor):]
+    return train_data, test_data
 
 def keystroke_model():
     # """Generates a 2-state model with lognormal emissions and frequency smoothing"""
@@ -33,11 +37,27 @@ def keystroke_model():
 def train(kpoints):
     hmm_model = keystroke_model()
     dataset = preprocess(kpoints)
+    
+    train_data, test_data = split_dataset(dataset)
+    # print_full(train_data)
 
-    print_full(dataset)
-    hmm_model.fit_df([dataset], pstate_col='keytext')
+    hmm_model.fit_df([train_data], pstate_col='keytext')
+    print(hmm_model)
+    # emissions
+    # print(hmm_model.emission_distr)
+
+    # hmm_model params
+    # params = hmm_model.params()
+    # emissions = params[0]
+    # state_transitions = params[1]
+
+    # print("Params: ", params)
+    # print("Emissions: ", hmm_model.emission)
+    # print("State Transitions: ", hmm_model.transmat)
 
     # np.set_printoptions(precision=3)
     # print(hmm_model)
+    # result = hmm_model.predict_df(dataset, pstate_col='keytext')
+    # print(result)
 
-    return hmm_model
+    return hmm_model, test_data
