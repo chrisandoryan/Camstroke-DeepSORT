@@ -308,6 +308,7 @@ def do_OCR(keystroke, enhance=True, pad=True):
     # return im, pytesseract.image_to_data(im, output_type=Output.DICT, config='--psm 10 --oem 0 -c tessedit_char_whitelist=0123456789abcdefghijklmnopqrstuvwxyz')
 
     # stable configuration
+    print("Shape: ", im.shape)
     return im, pytesseract.image_to_data(im, output_type=Output.DICT, config='--psm 10 --oem 3')
 
 

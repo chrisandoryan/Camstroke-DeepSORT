@@ -39,10 +39,10 @@ def train(kpoints):
     dataset = preprocess(kpoints)
     
     train_data, test_data = split_dataset(dataset)
-    # print_full(train_data)
+    print_full(train_data)
 
     hmm_model.fit_df([train_data], pstate_col='keytext')
-    print(hmm_model)
+    # print(hmm_model)
     # emissions
     # print(hmm_model.emission_distr)
 
