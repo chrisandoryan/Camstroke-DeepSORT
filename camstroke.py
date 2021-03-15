@@ -1,14 +1,12 @@
 from yolo_deepsort import cursor_tracker, cursor_detector
 from PIL import Image, ImageOps
 import cv2
-import pytesseract
 from math import sqrt, floor
 import matplotlib.pyplot as plt
 import random
 import numpy as np
 import csv
 import itertools
-from pytesseract import Output
 import uuid
 from collections import defaultdict
 import operator
@@ -16,6 +14,7 @@ from helpers import constants
 import helpers.utils as utils
 import argparse
 import hmm.viterbi_algorithm as viterbi
+from text_processing import tesseract_ocr as OCR
 
 class Camstroke(object):
     def __init__(self):
@@ -263,58 +262,6 @@ def isolate_keystroke(frame, font_size, cursor_xmin, cursor_ymin, cursor_xmax, c
     return frame, crop_range, isolation_width, isolation_height
 
 
-def do_OCR(keystroke, enhance=True, pad=True):
-    im = keystroke.kisolation_frame
-    # enhance the image before performing OCR
-    # https://stackoverflow.com/questions/42566319/tesseract-ocr-reading-a-low-resolution-pixelated-font-esp-digits
-    # https://stackoverflow.com/questions/9480013/image-processing-to-improve-tesseract-ocr-accuracy
-    if enhance:
-        # resize image
-        RESIZE_FACTOR = 4
-        im = cv2.resize(im, None, fx=RESIZE_FACTOR,
-                        fy=RESIZE_FACTOR, interpolation=cv2.INTER_CUBIC)
-
-        # convert image to grayscale
-        im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-
-        # automatic thresholding using Otsu's algorithm
-        thres, im = cv2.threshold(im, 0, 255, cv2.THRESH_BINARY|cv2.THRESH_OTSU)
-
-        # applying dilation and erosion
-        kernel = np.ones((1, 1), np.uint8)
-        im = cv2.dilate(im, kernel, iterations=2)
-        im = cv2.erode(im, kernel, iterations=2)
-
-        # applying adaptive blur
-        # im = cv2.adaptiveThreshold(cv2.bilateralFilter(im, 9, 75, 75), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
-        # im = cv2.adaptiveThreshold(cv2.medianBlur(im, 3), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
-
-        # applying normal blur
-        im = cv2.threshold(cv2.medianBlur(im, 3), 0, 255,
-                           cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-        # im = cv2.threshold(cv2.bilateralFilter(im, 5, 75, 75), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-        # im = cv2.threshold(cv2.GaussianBlur(im, (5, 5), 0), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-
-    im = Image.fromarray(im)
-
-    # invert the image, tesseract works best with black font and white background
-    im = ImageOps.invert(im)
-
-    # perform image padding and resize for higher resolution
-    if pad:
-        im = pad_image(im, target_size=50)
-
-    # basic configuration
-    # return im, pytesseract.image_to_string(im, config='--psm 10').strip()
-
-    # if need to limit charset, use this instead:
-    # return im, pytesseract.image_to_data(im, output_type=Output.DICT, config='--psm 10 --oem 0 -c tessedit_char_whitelist=0123456789abcdefghijklmnopqrstuvwxyz')
-
-    # stable configuration
-    print("Shape: ", im.size)
-    return im, pytesseract.image_to_data(im, output_type=Output.DICT, config='--psm 10 --oem 3')
-
-
 def draw_bbox(frame, xmin, ymin, xmax, ymax):
     color = colors[random.randint(0, len(colors) - 1)]
     color = [i * 255 for i in color]
@@ -329,33 +276,6 @@ def frame_to_video(frames, output_path, w, h):
     for frame in frames:
         out.write(frame)
     out.release()
-
-
-def pad_image(image, target_size=100):
-    padded_image = ImageOps.expand(image, target_size, 'black')
-    return padded_image
-
-# iterate through detected cursor while constantly estimating font size
-# def extract_keystrokes_tracker(video_path):
-#     camstroke = Camstroke()
-
-#     vwidth, vheight = get_video_size(video_path)
-#     PPI = calc_ppi(vwidth, vheight, screen_size_inch=13.3)
-
-#     for i, tracked in enumerate(cursor_tracker.track_cursor(video_path, constants.WEIGHT_PATH, draw_bbox=True)):
-#         frame, frame_num, xmin, ymin, xmax, ymax = tracked
-#         im = Image.fromarray(frame)
-#         font_size = calc_fontsize(ymax, ymin, PPI)
-
-#         camstroke.last_cursor_position = (xmin, ymin, xmax, ymax)
-#         camstroke.recorded_fontsizes.append(font_size)
-
-#         keystroke_image = isolate_keystroke(frame, camstroke.get_avg_fontsize(), xmin, ymin, xmax, ymax, crop=True)
-    # keystroke_image.show()
-    # ocr = do_OCR(keystroke_image)
-    # keystroke_image.save(fp="results/{}.png".format(frame_num))
-    # print("Detected: ", ocr)
-
 
 def extract_keystrokes_detector(video_path, mode="1gram"):
     camstroke = Camstroke()
@@ -413,7 +333,7 @@ def extract_keystrokes_detector(video_path, mode="1gram"):
                 camstroke.detected_cursors.append(detected_cursor)
                 camstroke.isolated_keystrokes.append(keystroke)
 
-                keystroke_image, ocr_result = do_OCR(
+                keystroke_image, ocr_result = OCR.run(
                     keystroke, enhance=True, pad=False)
                 # print("OCR Result: ", ocr_result)
 
@@ -429,10 +349,10 @@ def extract_keystrokes_detector(video_path, mode="1gram"):
                     # print(timing_data)
 
                 # original/unprocessed image
-                keystroke_image = keystroke.to_image()
+                # keystroke_image = keystroke.to_image()
 
                 # keystroke_image.show()
-                keystroke_image.save(fp="results/{}_{}.png".format(frame_id, keytext))
+                # keystroke_image.save(fp="results/{}_{}.png".format(frame_id, keytext))
         else:
             consecutive_streak = 0
 
@@ -469,7 +389,7 @@ def detect_and_extract(mode):
 def train_and_predict():
     camstroke = utils.load_camstroke("results/camstroke.pkl")
     hmm_model, test_data = hmm.train(camstroke.keystroke_points)
-    
+
     prediction = viterbi.predict(hmm_model, test_data)
 
 
@@ -487,7 +407,7 @@ if __name__ == '__main__':
     if args.mode == "extract":
         # loop_dataset()
         # mode = "1gram" # extract single character, one by one.
-        mode = "2gram" # extract a pair of two characters at once.
+        mode = "2gram"  # extract a pair of two characters at once.
         detect_and_extract(mode)
     elif args.mode == "train":
         import hmm.hidden_markov as hmm
