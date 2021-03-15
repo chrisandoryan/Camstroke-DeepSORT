@@ -35,6 +35,7 @@ def isolate_components(im, output):
         # finding a pixels in the labels array that have the current
         # connected component ID
         componentMask = (labels == i).astype("uint8") * 255
+        
         # show our output image and connected component mask
         cv2.imshow("Output", cloned_frame)
         # cv2.imshow("Connected Component", componentMask)
