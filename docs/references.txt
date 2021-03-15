@@ -3,6 +3,7 @@ https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html
 https://github.com/stefbo/ulr-ocr
 https://stackoverflow.com/questions/1972299/separate-image-of-text-into-component-character-images
 https://www.pyimagesearch.com/2021/02/22/opencv-connected-component-labeling-and-analysis/
+https://stackoverflow.com/questions/3495872/how-is-font-size-calculated
 
 Algorithm to extract character:
 start at left edge

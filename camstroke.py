@@ -16,6 +16,10 @@ import argparse
 import hmm.viterbi_algorithm as viterbi
 from text_processing import tesseract_ocr as OCR
 
+SCREEN_SIZE = 13.3 # in inch
+PROPORTIONAL_FONT = "proportional"
+FIXEDWIDTH_FONT = "fixed-width"
+
 class Camstroke(object):
     def __init__(self):
         self.last_cursor_position = (0, 0, 0, 0)  # xmin, ymin, xmax, ymax
@@ -277,12 +281,12 @@ def frame_to_video(frames, output_path, w, h):
         out.write(frame)
     out.release()
 
-def extract_keystrokes_detector(video_path, mode="1gram"):
+def extract_keystrokes_detector(video_path, font_type=FIXEDWIDTH_FONT):
     camstroke = Camstroke()
     consecutive_streak = 0
 
     vwidth, vheight = get_video_size(video_path)
-    PPI = calc_ppi(vwidth, vheight, screen_size_inch=13.3)
+    PPI = calc_ppi(vwidth, vheight, screen_size_inch=SCREEN_SIZE)
 
     for i, detected in enumerate(cursor_detector.detect_cursor(video_path, constants.WEIGHT_PATH, score_threshold=0.20)):
         frame, frame_id, pred_result = detected
@@ -312,8 +316,11 @@ def extract_keystrokes_detector(video_path, mode="1gram"):
                 bbox_w = xmax - xmin
                 bbox_h = ymax - ymin
 
-                font_size = calc_fontsize(ymax, ymin, PPI)
-                print("Font Size: ", font_size)
+                if font_type == FIXEDWIDTH_FONT:
+                    font_size = calc_fontsize(ymax, ymin, PPI)
+                    print("Font Size: ", font_size)
+                elif font_type == PROPORTIONAL_FONT:
+                    pass
 
                 camstroke.last_cursor_position = (xmin, ymin, xmax, ymax)
                 camstroke.recorded_fontsizes.append(font_size)
@@ -380,10 +387,10 @@ def loop_dataset():
         extract_keystrokes_detector(video_path)
 
 
-def detect_and_extract(mode):
+def detect_and_extract(font_type):
     video_path = "../Datasets/vscode_gfont2.mp4"
     print("Extracting from {}".format(video_path))
-    extract_keystrokes_detector(video_path, mode)
+    extract_keystrokes_detector(video_path, font_type)
 
 
 def train_and_predict():
@@ -406,9 +413,10 @@ if __name__ == '__main__':
 
     if args.mode == "extract":
         # loop_dataset()
-        # mode = "1gram" # extract single character, one by one.
-        mode = "2gram"  # extract a pair of two characters at once.
-        detect_and_extract(mode)
+        font_type = PROPORTIONAL_FONT # run when the font width is proportional (e.g i has smaller width than z)
+        font_type = FIXEDWIDTH_FONT  # analyze when the font width is fixed (e.g i and z have same width)
+
+        detect_and_extract(font_type)
     elif args.mode == "train":
         import hmm.hidden_markov as hmm
         train_and_predict()
