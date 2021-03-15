@@ -1,1 +1,13 @@
 https://medium.com/analytics-vidhya/viterbi-algorithm-for-prediction-with-hmm-part-3-of-the-hmm-series-6466ce2f5dc6
+https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html
+https://github.com/stefbo/ulr-ocr
+https://stackoverflow.com/questions/1972299/separate-image-of-text-into-component-character-images
+https://www.pyimagesearch.com/2021/02/22/opencv-connected-component-labeling-and-analysis/
+
+Algorithm to extract character:
+start at left edge
+  go right 1 column at a time until the current column contains black (a letter)
+  this is the start of the character
+  go right again till no black at all in current column
+  end of character
+repeat till end of image

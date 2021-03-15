@@ -244,7 +244,7 @@ def isolate_keystroke(frame, font_size, cursor_xmin, cursor_ymin, cursor_xmax, c
 
     xmin = (cursor_xmin - font_span) + cursor_x_center
     ymin = cursor_ymin
-    xmax = cursor_xmin + (cursor_x_center)
+    xmax = cursor_xmin + (cursor_x_center * 0.8)
     ymax = cursor_ymax
 
     crop_range = (xmin, ymin, xmax, ymax)
@@ -270,17 +270,20 @@ def do_OCR(keystroke, enhance=True, pad=True):
     # https://stackoverflow.com/questions/9480013/image-processing-to-improve-tesseract-ocr-accuracy
     if enhance:
         # resize image
-        RESIZE_FACTOR = 1.5
+        RESIZE_FACTOR = 4
         im = cv2.resize(im, None, fx=RESIZE_FACTOR,
                         fy=RESIZE_FACTOR, interpolation=cv2.INTER_CUBIC)
 
         # convert image to grayscale
         im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
 
+        # automatic thresholding using Otsu's algorithm
+        thres, im = cv2.threshold(im, 0, 255, cv2.THRESH_BINARY|cv2.THRESH_OTSU)
+
         # applying dilation and erosion
         kernel = np.ones((1, 1), np.uint8)
-        im = cv2.dilate(im, kernel, iterations=1)
-        im = cv2.erode(im, kernel, iterations=1)
+        im = cv2.dilate(im, kernel, iterations=2)
+        im = cv2.erode(im, kernel, iterations=2)
 
         # applying adaptive blur
         # im = cv2.adaptiveThreshold(cv2.bilateralFilter(im, 9, 75, 75), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
@@ -308,7 +311,7 @@ def do_OCR(keystroke, enhance=True, pad=True):
     # return im, pytesseract.image_to_data(im, output_type=Output.DICT, config='--psm 10 --oem 0 -c tessedit_char_whitelist=0123456789abcdefghijklmnopqrstuvwxyz')
 
     # stable configuration
-    print("Shape: ", im.shape)
+    print("Shape: ", im.size)
     return im, pytesseract.image_to_data(im, output_type=Output.DICT, config='--psm 10 --oem 3')
 
 
@@ -354,7 +357,7 @@ def pad_image(image, target_size=100):
     # print("Detected: ", ocr)
 
 
-def extract_keystrokes_detector(video_path):
+def extract_keystrokes_detector(video_path, mode="1gram"):
     camstroke = Camstroke()
     consecutive_streak = 0
 
@@ -390,6 +393,8 @@ def extract_keystrokes_detector(video_path):
                 bbox_h = ymax - ymin
 
                 font_size = calc_fontsize(ymax, ymin, PPI)
+                print("Font Size: ", font_size)
+
                 camstroke.last_cursor_position = (xmin, ymin, xmax, ymax)
                 camstroke.recorded_fontsizes.append(font_size)
 
@@ -416,16 +421,18 @@ def extract_keystrokes_detector(video_path):
                 conf, keytext = keystroke.get_character()
 
                 if keytext != None:
-                    # print("Detected: ", temp)
+                    print("Detected: ", keytext)
                     # print("Isolation Coordinate (x, y): ", floor(keystroke.kisolation_xmin), floor(keystroke.kisolation_ymin))
                     keypoint = camstroke.store_keystroke_timing(
                         frame_id, keystroke)
                     timing_data = keypoint.get_timing_data()
                     # print(timing_data)
 
-                # keystroke_image = keystroke.to_image()
+                # original/unprocessed image
+                keystroke_image = keystroke.to_image()
+
                 # keystroke_image.show()
-                # keystroke_image.save(fp="results/{}_{}.png".format(frame_id, ocr_result))
+                keystroke_image.save(fp="results/{}_{}.png".format(frame_id, keytext))
         else:
             consecutive_streak = 0
 
@@ -437,7 +444,7 @@ def extract_keystrokes_detector(video_path):
     # frame_to_video(frames, 'output.avi', image_w, image_h)
 
     # store camstroke data for further processing
-    utils.save_camstroke(camstroke, "results/camstroke.pkl")
+    # utils.save_camstroke(camstroke, "results/camstroke.pkl")
 
     # pass data to hmm learning
     # keystroke_points = camstroke.keystroke_points
@@ -453,10 +460,10 @@ def loop_dataset():
         extract_keystrokes_detector(video_path)
 
 
-def detect_and_extract():
-    video_path = "../Datasets/vscode_cut.mp4"
+def detect_and_extract(mode):
+    video_path = "../Datasets/vscode_gfont2.mp4"
     print("Extracting from {}".format(video_path))
-    extract_keystrokes_detector(video_path)
+    extract_keystrokes_detector(video_path, mode)
 
 
 def train_and_predict():
@@ -479,7 +486,9 @@ if __name__ == '__main__':
 
     if args.mode == "extract":
         # loop_dataset()
-        detect_and_extract()
+        # mode = "1gram" # extract single character, one by one.
+        mode = "2gram" # extract a pair of two characters at once.
+        detect_and_extract(mode)
     elif args.mode == "train":
         import hmm.hidden_markov as hmm
         train_and_predict()

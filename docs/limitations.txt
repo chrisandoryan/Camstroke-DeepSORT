@@ -2,3 +2,6 @@
 2. cursor detection accuracy turun drastis ketika window vscode di scroll horizontal, penyebab belum diketahui.
 3. OCR masih memiliki akurasi yang sedikit rendah, gimana kalo training neural network khusus?
 4. Tensorflow dan POHMM menggunakan dependency yang tidak compatible (tf requires numpy < 1.19, pohmm requires otherwise), harus dicari solusinya. Solusi sementara: write semua ke pickle, load setelah selesai dengan dependency yang berbeda.
+
+Backup Plan:
+Kalo misalkan emang hampir mustahil, backup plan (last resort) nya adalah buat character recognition dengan template matching, jadi scope nya terbatas pada VSCode aja dulu, baru nanti dikembangin lagi.
