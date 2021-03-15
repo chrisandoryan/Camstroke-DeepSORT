@@ -199,20 +199,22 @@ def normalize_bbox_size(xmin, ymin, xmax, ymax):
     return (xmin + (xmin * norm), ymin, xmax - (xmax * norm), ymax)
 
 
-def pt_to_px(pt):
+# https://medium.com/@zkareemz/golden-ratio-62b3b6d4282a
+def calc_font_height(pt):
     return pt * constants.PT2PX_SIZE_FACTOR
+
+def calc_font_width(pt):
+    return pt / constants.PT2PX_SIZE_FACTOR
+
 
 
 def px_to_inch(px, PPI):
     return px / PPI
 
-
 def get_cursor_height(cursor_ymax, cursor_ymin):
     return cursor_ymax - cursor_ymin
 
 # automatically detect the font size of the letter based on cursor size
-
-
 def calc_fontsize(cursor_ymax, cursor_ymin, PPI):
     cursor_height = get_cursor_height(cursor_ymax, cursor_ymin)
     font_size_inch = px_to_inch(cursor_height, PPI)
@@ -238,20 +240,31 @@ def get_video_size(video_path):
     return (width, height)
 
 
-def isolate_keystroke(frame, font_size, cursor_xmin, cursor_ymin, cursor_xmax, cursor_ymax, crop=False):
+def isolate_keystroke(frame, font_size, cursor_xmin, cursor_ymin, cursor_xmax, cursor_ymax, font_type, crop=False):
     image = Image.fromarray(frame)
-    font_span = pt_to_px(font_size)
+    # font_height = calc_font_height(font_size)
+    font_width = calc_font_width(font_size)
 
-    # normalize the isolation box coordinate near the center of cursor bounding box
-    cursor_x_center = (cursor_xmax - cursor_xmin) / 2
+    # normalize the isolation box coordinat
+    # def calc_font_width(pt):
+    # return pt / constants.PT2PX_SIZE_FACTORe near the center of cursor bounding box
+    # based on font type (fixed-width/proportional)
+    if font_type == PROPORTIONAL_FONT:
+        cursor_x_center = (cursor_xmax - cursor_xmin) / 2
 
-    xmin = (cursor_xmin - font_span) + cursor_x_center
-    ymin = cursor_ymin
-    xmax = cursor_xmin + (cursor_x_center * 0.8)
-    ymax = cursor_ymax
+        xmin = (cursor_xmin - (2 * font_width)) + cursor_x_center
+        ymin = cursor_ymin
+        xmax = cursor_xmin + (cursor_x_center)
+        ymax = cursor_ymax
+    elif font_type == FIXEDWIDTH_FONT:
+        cursor_x_center = (cursor_xmax - cursor_xmin) / 2
+
+        xmin = (cursor_xmin - font_width) + cursor_x_center
+        ymin = cursor_ymin
+        xmax = cursor_xmin + (cursor_x_center * 0.8)
+        ymax = cursor_ymax
 
     crop_range = (xmin, ymin, xmax, ymax)
-
     isolation_width = xmax - xmin
     isolation_height = ymax - ymin
 
@@ -316,11 +329,8 @@ def extract_keystrokes_detector(video_path, font_type=FIXEDWIDTH_FONT):
                 bbox_w = xmax - xmin
                 bbox_h = ymax - ymin
 
-                if font_type == FIXEDWIDTH_FONT:
-                    font_size = calc_fontsize(ymax, ymin, PPI)
-                    print("Font Size: ", font_size)
-                elif font_type == PROPORTIONAL_FONT:
-                    pass
+                font_size = calc_fontsize(ymax, ymin, PPI)
+                print("Font Size (%s): %d" % (font_type, font_size))
 
                 camstroke.last_cursor_position = (xmin, ymin, xmax, ymax)
                 camstroke.recorded_fontsizes.append(font_size)
@@ -329,7 +339,7 @@ def extract_keystrokes_detector(video_path, font_type=FIXEDWIDTH_FONT):
                     i, frame_id, scores[0][i], xmin, ymin, xmax, ymax, bbox_w, bbox_h)
 
                 isolated_frame, isolation_coordinate, isolated_width, isolated_height = isolate_keystroke(frame, camstroke.get_avg_fontsize(
-                ), xmin, ymin, xmax, ymax, crop=True)  # change crop to False to draw isolation box instead of cropping it
+                ), xmin, ymin, xmax, ymax, font_type, crop=True)  # change crop to False to draw isolation box instead of cropping it
 
                 isolated_xmin, isolated_ymin, isolated_xmax, isolated_ymax = isolation_coordinate
 
@@ -414,7 +424,7 @@ if __name__ == '__main__':
     if args.mode == "extract":
         # loop_dataset()
         font_type = PROPORTIONAL_FONT # run when the font width is proportional (e.g i has smaller width than z)
-        font_type = FIXEDWIDTH_FONT  # analyze when the font width is fixed (e.g i and z have same width)
+        # font_type = FIXEDWIDTH_FONT  # analyze when the font width is fixed (e.g i and z have same width)
 
         detect_and_extract(font_type)
     elif args.mode == "train":

@@ -4,7 +4,7 @@ PT2INCH_SIZE_FACTOR = 72
 
 # 1 pt is 1.328147px
 # https://everythingfonts.com/font/tools/units/pt-to-px
-PT2PX_SIZE_FACTOR = 1  # 1.328147
+PT2PX_SIZE_FACTOR = 1.328147 # 1
 
 # how many cursor detections required to determine the average font size
 FONT_SIZE_CONSENSUS = 100

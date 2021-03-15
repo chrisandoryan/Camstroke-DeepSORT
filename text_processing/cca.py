@@ -7,15 +7,20 @@ Performs connected component labelling (CCA/CCL) for isolating characters from i
 Algorithm:
 1. perform CCA and isolate character regions
 2. eliminate regions that are cut off (the bbox's x or y is intersected with the border of the image)
-3. 
-
+3. if there is two object with exact same X (indicates both aligned vertically), combine both (for i and j case)
+4. the typed character is the rightmost isolated region in the frame (karena karakter terakhir pasti berada tepat sebelum kursor, dimana kursor berada di kanan)
 """
 
 CONNECTIVITY = 8
 
+def the_algorithm():
+
+    return
+
 def isolate_components(im, output):
     (numLabels, labels, stats, centroids) = output
     im = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
+    im_height, im_width, _ = im.shape
 
     # loop over the number of unique connected component labels
     # skip the first result since it usually is the background being isolated
@@ -32,16 +37,30 @@ def isolate_components(im, output):
         print("W", bbox_w)
         print("H", bbox_h)
         print("Area", area)
+        print("X", bbox_x)
+        print("Y", bbox_y)
 
         # ensure the width, height, and area are all neither too small
         # nor too big
-        keepWidth = True # bbox_w > 5 and bbox_w < 50
-        keepHeight = True # bbox_h > 45 and bbox_h < 65
-        keepArea = True # area > 500 and area < 1500
+        # Filter 1: eliminate region that intersect with frame's border
+        testBorder = bbox_x + bbox_w < im_width or bbox_x > im_width - bbox_w
+
+        # Filter 2: eliminate region that has width smaller than 1/3 of calculated font width
+        testX = True # testBorder or (bbox_w > 8 and bbox_w < 50)
+
+        # Filter 3: eliminate region that has height bigger than calculated font height
+        testY = True # bbox_h > 45 and bbox_h < 65
+
+        # Filter 4: is the test required?
+        testArea = True # area > 500 and area < 1500
+
+        print("Test Border: ", testBorder)
+        print("TestX", testX)
+        print("TestY", testY)
 
         # ensure the connected component we are examining passes all
         # three tests
-        if all((keepWidth, keepHeight, keepArea)):
+        if all((testBorder, testX, testY, testArea)):
             # clone our original image (so we can draw on it) and then draw
             # a bounding box surrounding the connected component along with
             # a circle corresponding to the centroid
