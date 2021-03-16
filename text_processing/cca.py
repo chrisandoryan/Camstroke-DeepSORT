@@ -154,16 +154,21 @@ def the_algorithm(im, output):
 
         # merge vertically aligned regions (to resolve i and j detection limitation)
         # if found, we change labels of both regions into the same label (i)
+        # and remove the data with old label from list of candidates
         for a_index, b_index in detect_stacked_regions(candidates):
+            candidates = [c for c in candidates if c['index'] != a_index]
             labels[labels == a_index] = b_index
 
+        # TODO: noises hasn't been processed with stacked regions detection
         noises.append(tallest_region)
         noises = unique_array_dict(noises, "index")
         
         for c in candidates:
-            draw_bbox(im, c['index'], stats[c['index']], centroids[c['index']], labels, "Candidate")
-            pass
-    
+            c['mask'] = (labels == c['index']).astype("uint8") * 255
+            # draw_bbox(im, c['index'], stats[c['index']], centroids[c['index']], labels, "Candidate")
+        for n in noises:
+            n['mask'] = (labels == n['index']).astype("uint8") * 255
+
     return candidates, noises
 
 

@@ -319,9 +319,9 @@ def extract_keystrokes_detector(video_path, font_type=FIXEDWIDTH_FONT):
                 camstroke.detected_cursors.append(detected_cursor)
                 camstroke.isolated_keystrokes.append(keystroke)
 
-                # perform connected component labelling
+                # perform connected component labelling (CCA)
                 candidates, noises = cca.run_with_stats(keystroke, font_size)
-                print("Candidates for coordinate (x,y): ", xmin, ymin)
+                # print("Candidates for coordinate (x,y): ", xmin, ymin)
                 for c in candidates:
                     print(c)
 
