@@ -6,6 +6,8 @@ from helpers.image import enhance_image
 from helpers.utils import unique_array_dict
 import time
 
+STACKED_REGION_THRESHOLD = 2 # if two regions is 2 pixels adrift between each other, consider those regions belongs to the same chacter (e.g i and j)
+
 """
 Performs connected component labelling (CCA/CCL) for isolating characters from image.
 Algorithm v1.0:
@@ -66,6 +68,19 @@ def create_region_object(i, stats, centroids, empty=False):
 
 def sort_by_x_position(candidates):
     return sorted(candidates, key=lambda k: k['coord']['x']) 
+
+def detect_stacked_regions(candidates):
+    prev = candidates[0]
+    prev_xmin = -1000
+    prev_xmax = -1000
+    for c in candidates:
+        xmin = c['coord']['x']
+        xmax = c['coord']['x'] + c['shape']['w']
+        if abs(prev_xmin - xmin) <= STACKED_REGION_THRESHOLD or abs(prev_xmax - xmax) < STACKED_REGION_THRESHOLD:
+            yield prev['index'], c['index']
+        prev = c
+        prev_xmin = xmin
+        prev_xmax = xmax
 
 def the_algorithm(im, output):
     """
@@ -137,16 +152,18 @@ def the_algorithm(im, output):
         # sort based on x coordinate
         candidates = sort_by_x_position(candidates)
 
+        # merge vertically aligned regions (to resolve i and j detection limitation)
+        # if found, we change labels of both regions into the same label (i)
+        for a_index, b_index in detect_stacked_regions(candidates):
+            labels[labels == a_index] = b_index
+
         noises.append(tallest_region)
         noises = unique_array_dict(noises, "index")
         
         for c in candidates:
             draw_bbox(im, c['index'], stats[c['index']], centroids[c['index']], labels, "Candidate")
             pass
-        # for n in noises:
-        #     # print(n)
-        #     pass
-
+    
     return candidates, noises
 
 
