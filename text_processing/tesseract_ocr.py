@@ -15,13 +15,12 @@ def enhance_image(im):
     im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
 
     # automatic thresholding using Otsu's algorithm
-    thres, im = cv2.threshold(
-        im, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    thres, im = cv2.threshold(im, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
 
     # applying dilation and erosion
     kernel = np.ones((1, 1), np.uint8)
-    im = cv2.dilate(im, kernel, iterations=2)
-    im = cv2.erode(im, kernel, iterations=2)
+    im = cv2.dilate(im, kernel, iterations=6)
+    im = cv2.erode(im, kernel, iterations=6)
 
     # applying adaptive blur
     # im = cv2.adaptiveThreshold(cv2.bilateralFilter(im, 9, 75, 75), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
@@ -41,7 +40,7 @@ def pad_image(image, target_size=100):
     return padded_image
 
 
-def run(keystroke, enhance=True, pad=True):
+def run(keystroke, font_size, enhance=True, pad=True):
     im = keystroke.kisolation_frame
     # enhance the image before performing OCR
     # https://stackoverflow.com/questions/42566319/tesseract-ocr-reading-a-low-resolution-pixelated-font-esp-digits
@@ -52,7 +51,7 @@ def run(keystroke, enhance=True, pad=True):
     im = Image.fromarray(im)
 
     # perform connected component labelling
-    cca.run_with_stats(im)
+    cca.run_with_stats(im, font_size)
 
     # invert the image, tesseract works best with black font and white background
     im = ImageOps.invert(im)

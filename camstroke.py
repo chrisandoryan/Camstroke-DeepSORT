@@ -15,6 +15,8 @@ import helpers.utils as utils
 import argparse
 import hmm.viterbi_algorithm as viterbi
 from text_processing import tesseract_ocr as OCR
+from helpers.font import calc_font_width, calc_fontsize, get_cursor_height
+from helpers.screen import px_to_inch, calc_ppi
 
 SCREEN_SIZE = 13.3 # in inch
 PROPORTIONAL_FONT = "proportional"
@@ -130,8 +132,6 @@ class IsolatedKeystroke(object):
         return (self.kisolation_xmin, self.kisolation_ymin, self.kisolation_xmax, self.kisolation_ymax)
 
 # KeystrokePoint class contains one or more KUnit (isolated_keystroke), and is used to train HMM for search-space reduction
-
-
 class KeystrokePoint(object):
     def __init__(self, frame_id, last_detection_coordinates):
         self.id = uuid.uuid4()
@@ -199,36 +199,6 @@ def normalize_bbox_size(xmin, ymin, xmax, ymax):
     return (xmin + (xmin * norm), ymin, xmax - (xmax * norm), ymax)
 
 
-# https://medium.com/@zkareemz/golden-ratio-62b3b6d4282a
-def calc_font_height(pt):
-    return pt * constants.PT2PX_SIZE_FACTOR
-
-def calc_font_width(pt):
-    return pt / constants.PT2PX_SIZE_FACTOR
-
-
-
-def px_to_inch(px, PPI):
-    return px / PPI
-
-def get_cursor_height(cursor_ymax, cursor_ymin):
-    return cursor_ymax - cursor_ymin
-
-# automatically detect the font size of the letter based on cursor size
-def calc_fontsize(cursor_ymax, cursor_ymin, PPI):
-    cursor_height = get_cursor_height(cursor_ymax, cursor_ymin)
-    font_size_inch = px_to_inch(cursor_height, PPI)
-    font_size_pt = font_size_inch * constants.PT2INCH_SIZE_FACTOR
-    return int(font_size_pt)
-
-
-def calc_ppi(screen_w, screen_h, screen_size_inch):
-    # from https://superuser.com/questions/1085734/how-do-i-know-the-dpi-of-my-laptop-screen
-    # PPI = √(13662 + 7682) / 15.6 = 100.45
-    PPI = sqrt(pow(screen_w, 2) + pow(screen_h, 2)) / screen_size_inch
-    return PPI
-
-
 def calc_average(arr):
     return sum(arr) / len(arr)
 
@@ -245,16 +215,14 @@ def isolate_keystroke(frame, font_size, cursor_xmin, cursor_ymin, cursor_xmax, c
     # font_height = calc_font_height(font_size)
     font_width = calc_font_width(font_size)
 
-    # normalize the isolation box coordinat
-    # def calc_font_width(pt):
-    # return pt / constants.PT2PX_SIZE_FACTORe near the center of cursor bounding box
+    # normalize the isolation box coordinate near the center of cursor bounding box
     # based on font type (fixed-width/proportional)
     if font_type == PROPORTIONAL_FONT:
         cursor_x_center = (cursor_xmax - cursor_xmin) / 2
 
-        xmin = (cursor_xmin - (2 * font_width)) + cursor_x_center
+        xmin = (cursor_xmin - (1.5 * font_width)) + (cursor_x_center * 0.5)
         ymin = cursor_ymin
-        xmax = cursor_xmin + (cursor_x_center)
+        xmax = cursor_xmax # cursor_xmin + (cursor_x_center)
         ymax = cursor_ymax
     elif font_type == FIXEDWIDTH_FONT:
         cursor_x_center = (cursor_xmax - cursor_xmin) / 2
@@ -351,7 +319,7 @@ def extract_keystrokes_detector(video_path, font_type=FIXEDWIDTH_FONT):
                 camstroke.isolated_keystrokes.append(keystroke)
 
                 keystroke_image, ocr_result = OCR.run(
-                    keystroke, enhance=True, pad=False)
+                    keystroke, font_size, enhance=True, pad=False)
                 # print("OCR Result: ", ocr_result)
 
                 keystroke.ocr_result = ocr_result
