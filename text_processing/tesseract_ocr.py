@@ -5,7 +5,13 @@ from pytesseract import Output
 import numpy as np
 from helpers.image import enhance_image, pad_image
 
-def run(keystroke, enhance=True, pad=True):
+def run_vanilla(im):
+    im = Image.fromarray(im)
+    im = ImageOps.invert(im)
+
+    return im, pytesseract.image_to_data(im, output_type=Output.DICT, config='--psm 10 --oem 3')
+
+def run_advanced(keystroke, enhance=True, pad=True):
     im = keystroke.kisolation_frame
     # enhance the image before performing OCR
     # https://stackoverflow.com/questions/42566319/tesseract-ocr-reading-a-low-resolution-pixelated-font-esp-digits

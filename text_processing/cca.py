@@ -20,7 +20,10 @@ Algorithm v1.0:
 """
 
 CONNECTIVITY = 8
-
+CANDIDATE_TYPE = "CANDIDATE"
+RIGHTMOST_TYPE = "RIGHTMOST"
+TALLEST_TYPE = "TALLEST"
+NOISE_TYPE = "NOISE"
 
 def create_region_object(i, stats, centroids, empty=False):
     region_data = {
@@ -101,8 +104,8 @@ def the_algorithm(im, output):
     # im_height = im_height - 1
     # im_width = im_width - 1
 
-    print("imw", im_width)
-    print("imh", im_height)
+    # print("imw", im_width)
+    # print("imh", im_height)
 
     noises = []
     candidates = []
@@ -127,23 +130,23 @@ def the_algorithm(im, output):
             # get the tallest region / cursor region (assumption 3.1)
             if bbox_h > tallest_region['shape']['h']:
                 tallest_region = create_region_object(i, stats, centroids, empty=False)
-                tallest_region['type'] = "tallest"
+                tallest_region['type'] = TALLEST_TYPE
                 # print("Updating TR: ", tallest_region)
             
             # get the rightmost region (assumption 3.2)
             if bbox_x >= rightmost_region['coord']['x'] and bbox_h < tallest_region['shape']['h']:
                 rightmost_region = create_region_object(i, stats, centroids, empty=False)
-                rightmost_region['type'] = "rightmost"    
+                rightmost_region['type'] = RIGHTMOST_TYPE
                 # print("Updating RR: ", rightmost_region)
 
             # get all regions to the left of cursor_region, not intersecting with border (assumption 3.2 alt.)
             if bbox_h < tallest_region['shape']['h'] and (bbox_x + bbox_w < im_width and bbox_x > 0):
                 candidate_region = create_region_object(i, stats, centroids, empty=False)
-                candidate_region['type'] = "candidate"    
+                candidate_region['type'] = CANDIDATE_TYPE
                 candidates.append(candidate_region)
             else:
                 noise_region = create_region_object(i, stats, centroids, empty=False)
-                noise_region['type'] = "noise"
+                noise_region['type'] = NOISE_TYPE
                 noises.append(noise_region)
         
         candidates.append(rightmost_region)
@@ -165,7 +168,7 @@ def the_algorithm(im, output):
         
         for c in candidates:
             c['mask'] = (labels == c['index']).astype("uint8") * 255
-            # draw_bbox(im, c['index'], stats[c['index']], centroids[c['index']], labels, "Candidate")
+            draw_bbox(im, c['index'], stats[c['index']], centroids[c['index']], labels, "Candidate")
         for n in noises:
             n['mask'] = (labels == n['index']).astype("uint8") * 255
 

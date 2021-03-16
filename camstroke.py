@@ -283,9 +283,9 @@ def extract_keystrokes_detector(video_path, font_type=FIXEDWIDTH_FONT):
             consecutive_streak += 1
             # print("Cons. Streak: ", consecutive_streak)
             for i in range(valid_detections[0]):
-                if frame_id % 10 == 0:
-                    print("Detection no. %d on Frame %d" % (i, frame_id))
-                    # print("Score:", scores[0][i])
+                # if frame_id % 10 == 0:
+                #     print("Detection no. %d on Frame %d" % (i, frame_id))
+                #     print("Score:", scores[0][i])
 
                 coor = boxes[0][i]
                 # print("Coor: ", coor)
@@ -319,25 +319,29 @@ def extract_keystrokes_detector(video_path, font_type=FIXEDWIDTH_FONT):
                 camstroke.detected_cursors.append(detected_cursor)
                 camstroke.isolated_keystrokes.append(keystroke)
 
-                # perform connected component labelling (CCA)
-                candidates, noises = cca.run_with_stats(keystroke, font_size)
-                # print("Candidates for coordinate (x,y): ", xmin, ymin)
-                for c in candidates:
-                    print(c)
+                if font_type == PROPORTIONAL_FONT:
+                    # perform connected component labelling (CCA)
+                    candidates, noises = cca.run_with_stats(keystroke, font_size)
+                    # print("Candidates for coordinate (x,y): ", xmin, ymin)
+                    for c in candidates:
+                        im_candidate = c['mask']
+                        keystroke_image, ocr_result = OCR.run_vanilla(im_candidate)
+                        print(ocr_result)
 
-                keystroke_image, ocr_result = OCR.run(keystroke, enhance=True, pad=False)
-                # print("OCR Result: ", ocr_result)
+                elif font_type == FIXEDWIDTH_FONT:
+                    keystroke_image, ocr_result = OCR.run_advanced(keystroke, enhance=True, pad=False)
+                    # print("OCR Result: ", ocr_result)
 
-                keystroke.ocr_result = ocr_result
-                conf, keytext = keystroke.get_character()
+                    keystroke.ocr_result = ocr_result
+                    conf, keytext = keystroke.get_character()
 
-                if keytext != None:
-                    print("Detected: ", keytext)
-                    # print("Isolation Coordinate (x, y): ", floor(keystroke.kisolation_xmin), floor(keystroke.kisolation_ymin))
-                    keypoint = camstroke.store_keystroke_timing(
-                        frame_id, keystroke)
-                    timing_data = keypoint.get_timing_data()
-                    # print(timing_data)
+                    if keytext != None:
+                        print("Detected: ", keytext)
+                        # print("Isolation Coordinate (x, y): ", floor(keystroke.kisolation_xmin), floor(keystroke.kisolation_ymin))
+                        keypoint = camstroke.store_keystroke_timing(
+                            frame_id, keystroke)
+                        timing_data = keypoint.get_timing_data()
+                        # print(timing_data)
 
                 # original/unprocessed image
                 # keystroke_image = keystroke.to_image()
@@ -372,8 +376,9 @@ def loop_dataset():
 
 
 def detect_and_extract(font_type):
-    video_path = "../Datasets/vscode_gfont2.mp4"
-    print("Extracting from {}".format(video_path))
+    # video_path = "../Datasets/vscode_gfont2.mp4" # proportional font
+    video_path = "../Datasets/vscode_cut.mp4" # fixed-width font
+    # print("Extracting from {}".format(video_path))
     extract_keystrokes_detector(video_path, font_type)
 
 
@@ -399,7 +404,6 @@ if __name__ == '__main__':
         # loop_dataset()
         font_type = PROPORTIONAL_FONT # run when the font width is proportional (e.g i has smaller width than z)
         # font_type = FIXEDWIDTH_FONT  # analyze when the font width is fixed (e.g i and z have same width)
-
         detect_and_extract(font_type)
     elif args.mode == "train":
         import hmm.hidden_markov as hmm
