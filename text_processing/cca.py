@@ -2,6 +2,8 @@ import cv2
 from PIL import Image, ImageOps
 import numpy as np
 from helpers.font import calc_font_height, calc_font_width
+from helpers.image import enhance_image
+from helpers.utils import unique_array_dict
 import time
 
 """
@@ -18,6 +20,53 @@ Algorithm v1.0:
 CONNECTIVITY = 8
 
 
+def create_region_object(i, stats, centroids, empty=False):
+    region_data = {
+        "type": "",
+        "index": -1,
+        "shape": {
+                "w": -1,
+                "h": -1,
+                "area": -1
+        },
+        "coord": {
+            "x": -1,
+            "y": -1
+        },
+        "centroid": {
+            "cX": -1,
+            "cY": -1
+        }
+    }
+    if empty:
+        return region_data
+    else:
+        bbox_x = stats[i, cv2.CC_STAT_LEFT]
+        bbox_y = stats[i, cv2.CC_STAT_TOP]
+        bbox_w = stats[i, cv2.CC_STAT_WIDTH]
+        bbox_h = stats[i, cv2.CC_STAT_HEIGHT]
+        area = stats[i, cv2.CC_STAT_AREA]
+        (bbox_cX, bbox_cY) = centroids[i]
+
+        region_data['index'] = i
+        region_data['shape'] = {
+            "w": bbox_w,
+            "h": bbox_h,
+            "area": area
+        }
+        region_data['coord'] = {
+            "x": bbox_x,
+            "y": bbox_y
+        }
+        region_data['centroid'] = {
+            "cX": bbox_cX,
+            "cY": bbox_cY
+        }
+        return region_data
+
+def sort_by_x_position(candidates):
+    return sorted(candidates, key=lambda k: k['coord']['x']) 
+
 def the_algorithm(im, output):
     """
     Algorithm v2.0
@@ -26,56 +75,86 @@ def the_algorithm(im, output):
     3. If there are more than 2 regions, differentiate each region into specific character components (assumptions):
     3.1 Tallest region (region with highest height) must be the cursor (CURSOR_REGION)
     3.2 Rightmost region except the cursor/CURSOR_REGION must be the last typed character
+    3.2 (alt) Every region to the left of the CURSOR_REGION that is not intersect with the border
     3.3 The rest can be considered as noise
     """
     (numLabels, labels, stats, centroids) = output
     im = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
     im_height, im_width, _ = im.shape
 
-    print("Stats: ", stats)
+    # since both height and width starts in 1 instead of 0, we subtract 1 from them
+    # im_height = im_height - 1
+    # im_width = im_width - 1
+
+    print("imw", im_width)
+    print("imh", im_height)
+
+    noises = []
+    candidates = []
 
     if numLabels <= 2:
         print("Skipping since only 2 regions detected")
+        pass
     else:
         # get background region (assumption 1)
         background_index = 0
         background = stats[background_index]
-        stats = np.delete(stats, background_index, axis=0)
-        print("BG: ", background)
-        print("Stats: ", stats)
-        draw_bbox(im, background_index, background, centroids[background_index], labels)
+        # print("BG: ", background)
 
-        # get cursor region (assumption 3.1)
-        cursor_region_index = np.where(
-            stats[:, cv2.CC_STAT_HEIGHT] == np.amax(stats[:, cv2.CC_STAT_HEIGHT]))
-        cursor_region = stats[cursor_region_index][0]
-        stats = np.delete(stats, cursor_region_index, axis=0)
+        tallest_region = create_region_object(1, stats, centroids, empty=True)
+        rightmost_region = create_region_object(1, stats, centroids, empty=True)
 
-        print("CR: ", cursor_region)
-        print("Stats: ", stats)
-        draw_bbox(im, cursor_region_index, cursor_region, centroids[cursor_region_index + 1], labels)
+        for i in range(1, numLabels):
+            bbox_x = stats[i, cv2.CC_STAT_LEFT]
+            bbox_w = stats[i, cv2.CC_STAT_WIDTH]
+            bbox_h = stats[i, cv2.CC_STAT_HEIGHT]
 
-        # get last typed character (assumption 3.2).
-        # filter indices where height is below cursor_region's height
-        candidates = stats[stats[:, cv2.CC_STAT_HEIGHT]
-                           < cursor_region[cv2.CC_STAT_HEIGHT]]
-        # then filter where value of x coordinate that is bigger than other regions (the rightmost)
-        rightmost_index = np.where(
-            candidates[:, cv2.CC_STAT_LEFT] == np.amax(stats[:, cv2.CC_STAT_LEFT]))
-        keystroke_region = stats[rightmost_index][0]
-        stats = np.delete(stats, rightmost_index, axis=0)
-        print("KR: ", keystroke_region)
-        draw_bbox(im, rightmost_index, keystroke_region, centroids[rightmost_index + 2], labels)
+            # get the tallest region / cursor region (assumption 3.1)
+            if bbox_h > tallest_region['shape']['h']:
+                tallest_region = create_region_object(i, stats, centroids, empty=False)
+                tallest_region['type'] = "tallest"
+                # print("Updating TR: ", tallest_region)
+            
+            # get the rightmost region (assumption 3.2)
+            if bbox_x >= rightmost_region['coord']['x'] and bbox_h < tallest_region['shape']['h']:
+                rightmost_region = create_region_object(i, stats, centroids, empty=False)
+                rightmost_region['type'] = "rightmost"    
+                # print("Updating RR: ", rightmost_region)
 
-    return
+            # get all regions to the left of cursor_region, not intersecting with border (assumption 3.2 alt.)
+            if bbox_h < tallest_region['shape']['h'] and (bbox_x + bbox_w < im_width and bbox_x > 0):
+                candidate_region = create_region_object(i, stats, centroids, empty=False)
+                candidate_region['type'] = "candidate"    
+                candidates.append(candidate_region)
+            else:
+                noise_region = create_region_object(i, stats, centroids, empty=False)
+                noise_region['type'] = "noise"
+                noises.append(noise_region)
+        
+        candidates.append(rightmost_region)
+        candidates = unique_array_dict(candidates, "index")
+
+        # sort based on x coordinate
+        candidates = sort_by_x_position(candidates)
+
+        noises.append(tallest_region)
+        noises = unique_array_dict(noises, "index")
+        
+        for c in candidates:
+            draw_bbox(im, c['index'], stats[c['index']], centroids[c['index']], labels, "Candidate")
+            pass
+        # for n in noises:
+        #     # print(n)
+        #     pass
+
+    return candidates, noises
 
 
-def draw_bbox(im, i, stat, centroid, labels):
+def draw_bbox(im, i, stat, centroid, labels, frame_label="Output"):
     bbox_x = stat[cv2.CC_STAT_LEFT]
     bbox_y = stat[cv2.CC_STAT_TOP]
     bbox_w = stat[cv2.CC_STAT_WIDTH]
     bbox_h = stat[cv2.CC_STAT_HEIGHT]
-    area = stat[cv2.CC_STAT_AREA]
     (bbox_cX, bbox_cY) = centroid
 
     cloned_frame = im.copy()
@@ -90,8 +169,8 @@ def draw_bbox(im, i, stat, centroid, labels):
     componentMask = (labels == i).astype("uint8") * 255
 
     # show our output image and connected component mask
-    cv2.imshow("Output", cloned_frame)
-    cv2.imshow("Connected Component", componentMask)
+    cv2.imshow(frame_label, cloned_frame)
+    cv2.imshow("%s Mask" % frame_label, componentMask)
     cv2.waitKey(0)
 
 
@@ -148,10 +227,12 @@ def display_regions(im, font_size, output):
         cv2.waitKey(0)
 
 
-def run_with_stats(im, font_size):
+def run_with_stats(keystroke, font_size):
+    im = keystroke.kisolation_frame
+    im = enhance_image(im)
     im = np.array(im)
 
     # apply connected component analysis to the thresholded image
     cca_result = cv2.connectedComponentsWithStats(im, CONNECTIVITY, cv2.CV_32S)
     # display_regions(im, font_size, result)
-    the_algorithm(im, cca_result)
+    return the_algorithm(im, cca_result)

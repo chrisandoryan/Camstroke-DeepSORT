@@ -17,6 +17,7 @@ import hmm.viterbi_algorithm as viterbi
 from text_processing import tesseract_ocr as OCR
 from helpers.font import calc_font_width, calc_fontsize, get_cursor_height
 from helpers.screen import px_to_inch, calc_ppi
+from text_processing import cca
 
 SCREEN_SIZE = 13.3 # in inch
 PROPORTIONAL_FONT = "proportional"
@@ -220,7 +221,7 @@ def isolate_keystroke(frame, font_size, cursor_xmin, cursor_ymin, cursor_xmax, c
     if font_type == PROPORTIONAL_FONT:
         cursor_x_center = (cursor_xmax - cursor_xmin) / 2
 
-        xmin = (cursor_xmin - (1.5 * font_width)) + (cursor_x_center * 0.5)
+        xmin = (cursor_xmin - (2 * font_width)) # + (cursor_x_center * 0.5)
         ymin = cursor_ymin
         xmax = cursor_xmax # cursor_xmin + (cursor_x_center)
         ymax = cursor_ymax
@@ -318,8 +319,13 @@ def extract_keystrokes_detector(video_path, font_type=FIXEDWIDTH_FONT):
                 camstroke.detected_cursors.append(detected_cursor)
                 camstroke.isolated_keystrokes.append(keystroke)
 
-                keystroke_image, ocr_result = OCR.run(
-                    keystroke, font_size, enhance=True, pad=False)
+                # perform connected component labelling
+                candidates, noises = cca.run_with_stats(keystroke, font_size)
+                print("Candidates for coordinate (x,y): ", xmin, ymin)
+                for c in candidates:
+                    print(c)
+
+                keystroke_image, ocr_result = OCR.run(keystroke, enhance=True, pad=False)
                 # print("OCR Result: ", ocr_result)
 
                 keystroke.ocr_result = ocr_result

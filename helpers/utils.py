@@ -15,3 +15,6 @@ def print_full(x):
     pd.set_option('display.max_rows', len(x))
     print(x)
     pd.reset_option('display.max_rows')
+
+def unique_array_dict(L, key):
+    return list({v[key]:v for v in L}.values())
