@@ -183,15 +183,16 @@ def run_with_yolo(video_path, font_type=FIXEDWIDTH_FONT):
 
                         kunit.set_ocr_result(ocr_result)
 
-                        print("Frame ID: %d" % frame_id)
-                        print("Isolation Coordinate: ", isolation_coordinates)
-                        print("Font Size (%s): %d" % (font_type, font_size))
+                        # print("Frame ID: %d" % frame_id)
+                        # print("Isolation Coordinate: ", isolation_coordinates)
+                        # print("Font Size (%s): %d" % (font_type, font_size))
+                        # print("KUnit Absolute Coord: ", kunit_absolute_coordinates)
+                        # print("OCR Result: ", kunit.get_character())
+                        # print()
 
-                        print("KUnit Coord: ", kunit_coordinates)
-                        print("KUnit Absolute Coord: ", kunit_absolute_coordinates)
-                        print("OCR Result: ", kunit.get_character())
-
-                        camstroke.store_kunit(kunit)
+                        kpoint = camstroke.store_kunit(frame_id, kunit)
+                        timing_data = kpoint.get_timing_data()
+                        print("Timing Data: ", timing_data)
                         
                 # elif font_type == FIXEDWIDTH_FONT:
                 #     keystroke_image, ocr_result = OCR.run_advanced(isolation_window, enhance=True, pad=False)

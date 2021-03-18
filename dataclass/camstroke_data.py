@@ -27,29 +27,47 @@ class Camstroke(object):
             keystroke_data.append(merged)
         return keystroke_data
 
-    def store_kunit(self, kunit):
-        if len(self.keystroke_points) > 0:
-            last_kpoint = self.keystroke_points[-1]
-            last_xmin, _, _, _ = last_kpoint.last_detection_coordinates
+    def get_existing_kpoint(self, kunit):
+        for kp in self.keystroke_points:
+            kpoint_xmin, _, kpoint_ymin, _ = kp.last_detection_coordinates
+            x_similar = abs(kpoint_xmin - kunit.xmin) <= constants.DETECTION_SENSITIVITY
+            y_similar = abs(kpoint_ymin - kunit.ymin) <= constants.DETECTION_SENSITIVITY
+            if any((x_similar, y_similar)):
+                return kp
+        return None
 
-        return
+    def store_kunit(self, frame_id, kunit):
+        existing_kpoint = self.get_existing_kpoint(kunit)
+        if existing_kpoint != None:
+            # print("Using Last KeystrokePoint with ID: ", existing_kpoint.id)
+            # print("Kunits: ", len(existing_kpoint.kunits))
+            existing_kpoint.add_keystroke_unit(frame_id, kunit.get_coordinates(), kunit)
+            return existing_kpoint
+        else:
+            kpoint = KeystrokePoint(frame_id, kunit.get_coordinates())
+            kpoint.add_keystroke_unit(frame_id, kunit.get_coordinates(), kunit)
+            # print("Creating New KeystrokePoint with ID: ", kpoint.id)
+            # print("Kunits: ", len(kpoint.kunits))
+            self.keystroke_points.append(kpoint)
+            return kpoint
 
-    def merge_keystroke_to_keystroke_points(self, frame_id, isolation_window):
-        if len(self.keystroke_points) > 0:
-            last_kpoint = self.keystroke_points[-1]
-            last_xmin, _, _, _ = last_kpoint.last_detection_coordinates
-            if abs(isolation_window.kisolation_xmin - last_xmin) <= constants.DETECTION_SENSITIVITY:
-                # print("Using Last KeystrokePoint with ID: ", last_kpoint.id)
-                # print("Kunits: ", len(last_kpoint.kunits))
-                last_kpoint.add_keystroke_unit(
-                    frame_id, isolation_window.get_isolation_coordinates(), isolation_window)
-                return last_kpoint
+    # Old Function
+    # def merge_keystroke_to_keystroke_points(self, frame_id, isolation_window):
+    #     if len(self.keystroke_points) > 0:
+    #         last_kpoint = self.keystroke_points[-1]
+    #         last_xmin, _, _, _ = last_kpoint.last_detection_coordinates
+    #         if abs(isolation_window.kisolation_xmin - last_xmin) <= constants.DETECTION_SENSITIVITY:
+    #             # print("Using Last KeystrokePoint with ID: ", last_kpoint.id)
+    #             # print("Kunits: ", len(last_kpoint.kunits))
+    #             last_kpoint.add_keystroke_unit(
+    #                 frame_id, isolation_window.get_isolation_coordinates(), isolation_window)
+    #             return last_kpoint
 
-        kpoint = KeystrokePoint(
-            frame_id, isolation_window.get_isolation_coordinates())
-        # print("Creating New KeystrokePoint with ID: ", kpoint.id)
-        # print("Kunits: ", len(kpoint.kunits))
-        kpoint.add_keystroke_unit(
-            frame_id, isolation_window.get_isolation_coordinates(), isolation_window)
-        self.keystroke_points.append(kpoint)
-        return kpoint
+    #     kpoint = KeystrokePoint(
+    #         frame_id, isolation_window.get_isolation_coordinates())
+    #     # print("Creating New KeystrokePoint with ID: ", kpoint.id)
+    #     # print("Kunits: ", len(kpoint.kunits))
+    #     kpoint.add_keystroke_unit(
+    #         frame_id, isolation_window.get_isolation_coordinates(), isolation_window)
+    #     self.keystroke_points.append(kpoint)
+    #     return kpoint
