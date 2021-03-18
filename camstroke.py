@@ -15,12 +15,12 @@ from helpers import constants
 import helpers.utils as utils
 from helpers.font import calc_font_width, calc_fontsize, get_cursor_height
 from helpers.screen import px_to_inch, calc_ppi
-from helpers.video import get_video_size
+from helpers.video import get_video_size, frame_to_video
 
 from dataclass.camstroke_data import Camstroke
 from dataclass.keystroke import KUnit, KeystrokePoint
 from dataclass.detected_cursor import DetectedCursor
-from dataclass.isolated import IsolationWindow
+from dataclass.isolation_window import IsolationWindow
 
 from yolo_deepsort import cursor_tracker, cursor_detector
 import hmm.viterbi_algorithm as viterbi
@@ -92,13 +92,23 @@ def draw_bbox(frame, xmin, ymin, xmax, ymax):
                   (int(xmax), int(ymax)), color, 2)
     return frame
 
+def to_absolute_coordinates(isolation_coordinates, kunit_coordinates):
+    iso_xmin, iso_ymin, iso_xmax, iso_ymax = isolation_coordinates
+    kun_xmin, kun_ymin, kun_xmax, kun_ymax = kunit_coordinates
 
-def frame_to_video(frames, output_path, w, h):
-    out = cv2.VideoWriter(
-        output_path, cv2.VideoWriter_fourcc(*'DIVX'), 15, (w, h))
-    for frame in frames:
-        out.write(frame)
-    out.release()
+    # descale the pixels (normalize)
+    kun_xmin = kun_xmin / 5
+    kun_ymin = kun_ymin / 5
+    kun_xmax = kun_xmax / 5
+    kun_ymax = kun_ymax / 5
+
+    abs_xmin = iso_xmin + kun_xmin
+    abs_ymin = iso_ymin + kun_ymin
+    abs_xmax = iso_xmin + kun_xmax
+    abs_ymax = iso_ymin + kun_ymax
+
+    abs_coordinates = (abs_xmin, abs_ymin, abs_xmax, abs_ymax)
+    return abs_coordinates
 
 def run_with_yolo(video_path, font_type=FIXEDWIDTH_FONT):
     camstroke = Camstroke()
@@ -145,16 +155,12 @@ def run_with_yolo(video_path, font_type=FIXEDWIDTH_FONT):
 
                 detected_cursor = DetectedCursor(i, frame_id, scores[0][i], detection_coordinates, detection_shape)
 
-                isolated_frame, isolation_coordinate, isolation_shape = crop_isolation_window(frame, camstroke.get_avg_fontsize(), detection_coordinates, font_type, crop=True)  # change crop to False to draw isolation box instead of cropping it
-                isolation_window = IsolationWindow(frame_id, isolated_frame, isolation_coordinate, isolation_shape)
+                isolated_frame, isolation_coordinates, isolation_shape = crop_isolation_window(frame, camstroke.get_avg_fontsize(), detection_coordinates, font_type, crop=True)  # change crop to False to draw isolation box instead of cropping it
+                isolation_window = IsolationWindow(frame_id, isolated_frame, isolation_coordinates, isolation_shape)
 
                 # save both detection and isolation data
                 camstroke.detected_cursors.append(detected_cursor)
                 camstroke.isolation_windows.append(isolation_window)
-
-                print("Frame ID: %d" % frame_id)
-                print("Isolation Coordinate (x, y): ", floor(isolation_window.kisolation_xmin), floor(isolation_window.kisolation_ymin))
-                print("Font Size (%s): %d" % (font_type, font_size))
 
                 if font_type == PROPORTIONAL_FONT:
                     # perform connected component labelling (CCA)
@@ -169,11 +175,21 @@ def run_with_yolo(video_path, font_type=FIXEDWIDTH_FONT):
                         kunit_coordinates = (kunit_bbox_x, kunit_bbox_y, kunit_bbox_x + kunit_bbox_w, kunit_bbox_y + kunit_bbox_h)
                         kunit_shape = (kunit_bbox_w, kunit_bbox_h)
 
-                        kunit = KUnit(frame_id, c['mask'], kunit_coordinates, kunit_shape)
+                        # convert kunit coordinate relative to the video frame, instead of relative to the isolation bbox frame
+                        kunit_absolute_coordinates = to_absolute_coordinates(isolation_coordinates, kunit_coordinates)
+
+                        kunit = KUnit(frame_id, c['mask'], kunit_absolute_coordinates, kunit_shape)
                         _, ocr_result = OCR.run_vanilla(c['mask'])
 
                         kunit.set_ocr_result(ocr_result)
-                        print(kunit.get_character())
+
+                        print("Frame ID: %d" % frame_id)
+                        print("Isolation Coordinate: ", isolation_coordinates)
+                        print("Font Size (%s): %d" % (font_type, font_size))
+
+                        print("KUnit Coord: ", kunit_coordinates)
+                        print("KUnit Absolute Coord: ", kunit_absolute_coordinates)
+                        print("OCR Result: ", kunit.get_character())
 
                         camstroke.store_kunit(kunit)
                         

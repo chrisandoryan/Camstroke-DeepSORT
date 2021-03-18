@@ -7,10 +7,13 @@ from PIL import Image, ImageOps
 import numpy as np
 
 def enhance_image(im):
+    # print("IM Shape Before: ", im.shape)
     # resize image
     RESIZE_FACTOR = 5
     im = cv2.resize(im, None, fx=RESIZE_FACTOR,
                     fy=RESIZE_FACTOR, interpolation=cv2.INTER_CUBIC)
+
+    # print("IM Shape After: ", im.shape)
 
     # convert image to grayscale
     im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
