@@ -18,3 +18,6 @@ def print_full(x):
 
 def unique_array_dict(L, key):
     return list({v[key]:v for v in L}.values())
+
+def calc_average(arr):
+    return sum(arr) / len(arr)
