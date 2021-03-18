@@ -1,7 +1,7 @@
 import helpers.utils as utils
 from helpers import constants
 
-from dataclass.Keystroke import KeystrokePoint
+from dataclass.keystroke import KeystrokePoint
 
 class Camstroke(object):
     def __init__(self):
@@ -26,6 +26,13 @@ class Camstroke(object):
             merged['est_fontsize'] = font_size
             keystroke_data.append(merged)
         return keystroke_data
+
+    def store_kunit(self, kunit):
+        if len(self.keystroke_points) > 0:
+            last_kpoint = self.keystroke_points[-1]
+            last_xmin, _, _, _ = last_kpoint.last_detection_coordinates
+
+        return
 
     def merge_keystroke_to_keystroke_points(self, frame_id, isolation_window):
         if len(self.keystroke_points) > 0:

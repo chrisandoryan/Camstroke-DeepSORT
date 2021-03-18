@@ -1,10 +1,33 @@
 import uuid
 from collections import defaultdict
 import operator
+import numpy as np
+from helpers import constants
 
 class KUnit(object):
-    def __init__(self):
-        return
+    def __init__(self, frame_id, kunit_image, kunit_coordinates, kunit_shape):
+        self.frame_id = frame_id
+        self.kunit_image = kunit_image
+        self.kisolation_w, self.kisolation_h = kunit_shape
+        self.kisolation_xmin, self.kisolation_xmax, self.kisolation_ymin, self.kisolation_ymax = kunit_coordinates
+        self.ocr_result = None
+
+    def set_ocr_result(self, ocr_result):
+        self.ocr_result = ocr_result
+
+    def get_character(self):
+        index = np.argmax(self.ocr_result['conf'])
+        if int(self.ocr_result['conf'][index]) < constants.OCR_CONF_THRESHOLD:
+            return None, None
+        else:
+            text = self.ocr_result['text'][index]
+            conf = self.ocr_result['conf'][index]
+            if text in constants.INVALID_KEYSTROKE:
+                return None, None
+            else:
+                return conf, text
+
+
 
 # KeystrokePoint class contains one or more KUnit, and is used to train HMM for search-space reduction
 class KeystrokePoint(object):

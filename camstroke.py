@@ -17,10 +17,10 @@ from helpers.font import calc_font_width, calc_fontsize, get_cursor_height
 from helpers.screen import px_to_inch, calc_ppi
 from helpers.video import get_video_size
 
-from dataclass.Camstroke import Camstroke
-from dataclass.Keystroke import KUnit, KeystrokePoint
-from dataclass.DetectedCursor import DetectedCursor
-from dataclass.IsolationWindow import IsolationWindow
+from dataclass.camstroke_data import Camstroke
+from dataclass.keystroke import KUnit, KeystrokePoint
+from dataclass.detected_cursor import DetectedCursor
+from dataclass.isolated import IsolationWindow
 
 from yolo_deepsort import cursor_tracker, cursor_detector
 import hmm.viterbi_algorithm as viterbi
@@ -33,7 +33,6 @@ FIXEDWIDTH_FONT = "FIXED-WIDTH"
 cmap = plt.get_cmap('tab20b')
 colors = [cmap(i)[:3] for i in np.linspace(0, 1, 20)]
 
-
 def save_keystroke_data(output_path, keystrokes):
     with open(output_path, mode='w') as csv_file:
         fieldnames = ['detection_id', 'score', 'frame_id', 'est_fontsize', 'bbox_xmin',
@@ -42,7 +41,6 @@ def save_keystroke_data(output_path, keystrokes):
             csv_file, fieldnames=fieldnames, extrasaction='ignore')
         writer.writeheader()
         writer.writerows(keystrokes)
-
 
 def normalize_bbox_size(xmin, ymin, xmax, ymax):
     norm = 0.2
@@ -102,7 +100,7 @@ def frame_to_video(frames, output_path, w, h):
         out.write(frame)
     out.release()
 
-def extract_with_yolo(video_path, font_type=FIXEDWIDTH_FONT):
+def run_with_yolo(video_path, font_type=FIXEDWIDTH_FONT):
     camstroke = Camstroke()
     consecutive_streak = 0
 
@@ -148,7 +146,6 @@ def extract_with_yolo(video_path, font_type=FIXEDWIDTH_FONT):
                 detected_cursor = DetectedCursor(i, frame_id, scores[0][i], detection_coordinates, detection_shape)
 
                 isolated_frame, isolation_coordinate, isolation_shape = crop_isolation_window(frame, camstroke.get_avg_fontsize(), detection_coordinates, font_type, crop=True)  # change crop to False to draw isolation box instead of cropping it
-
                 isolation_window = IsolationWindow(frame_id, isolated_frame, isolation_coordinate, isolation_shape)
 
                 # save both detection and isolation data
@@ -164,26 +161,35 @@ def extract_with_yolo(video_path, font_type=FIXEDWIDTH_FONT):
                     keystroke_candidates, noises = cca.run_with_stats(isolation_window, font_size)
                     # print("Candidates for coordinate (x,y): ", xmin, ymin)
                     for c in keystroke_candidates:
+                        kunit_bbox_x = c['coord']['x']
+                        kunit_bbox_y = c['coord']['y']
+                        kunit_bbox_w = c['shape']['w']
+                        kunit_bbox_h = c['shape']['h']
 
-                        pass
-                        # if c['type'] == "RIGHTMOST":
-                        #     im_candidate = c['mask']
-                        #     keystroke_image, ocr_result = OCR.run_vanilla(im_candidate)
-                        #     print(ocr_result)
+                        kunit_coordinates = (kunit_bbox_x, kunit_bbox_y, kunit_bbox_x + kunit_bbox_w, kunit_bbox_y + kunit_bbox_h)
+                        kunit_shape = (kunit_bbox_w, kunit_bbox_h)
 
-                elif font_type == FIXEDWIDTH_FONT:
-                    keystroke_image, ocr_result = OCR.run_advanced(isolation_window, enhance=True, pad=False)
-                    # print("OCR Result: ", ocr_result)
+                        kunit = KUnit(frame_id, c['mask'], kunit_coordinates, kunit_shape)
+                        _, ocr_result = OCR.run_vanilla(c['mask'])
 
-                    isolation_window.ocr_result = ocr_result
-                    conf, keytext = isolation_window.get_character()
+                        kunit.set_ocr_result(ocr_result)
+                        print(kunit.get_character())
 
-                    if keytext != None:
-                        print("Detected: ", keytext)
-                        # print("Isolation Coordinate (x, y): ", floor(isolation_window.kisolation_xmin), floor(isolation_window.kisolation_ymin))
-                        keypoint = camstroke.merge_keystroke_to_keystroke_points(frame_id, isolation_window)
-                        timing_data = keypoint.get_timing_data()
-                        # print(timing_data)
+                        camstroke.store_kunit(kunit)
+                        
+                # elif font_type == FIXEDWIDTH_FONT:
+                #     keystroke_image, ocr_result = OCR.run_advanced(isolation_window, enhance=True, pad=False)
+                #     # print("OCR Result: ", ocr_result)
+
+                #     isolation_window.ocr_result = ocr_result
+                #     # conf, keytext = isolation_window.get_character()
+
+                #     if keytext != None:
+                #         print("Detected: ", keytext)
+                #         # print("Isolation Coordinate (x, y): ", floor(isolation_window.kisolation_xmin), floor(isolation_window.kisolation_ymin))
+                #         keypoint = camstroke.merge_keystroke_to_keystroke_points(frame_id, isolation_window)
+                #         timing_data = keypoint.get_timing_data()
+                #         # print(timing_data)
 
                 # original/unprocessed image
                 # keystroke_image = isolation_window.to_image()
@@ -214,14 +220,14 @@ def loop_dataset():
     for s in sizes:
         video_path = "../Recordings/vscode_font{}.mp4".format(s)
         print("Extracting from {}".format(video_path))
-        extract_with_yolo(video_path)
+        run_with_yolo(video_path)
 
 
 def detect_and_extract(font_type):
     video_path = "../Datasets/vscode_gfont2.mp4" # proportional font
     # video_path = "../Datasets/vscode_cut.mp4" # fixed-width font
     # print("Extracting from {}".format(video_path))
-    extract_with_yolo(video_path, font_type)
+    run_with_yolo(video_path, font_type)
 
 
 def train_and_predict():
