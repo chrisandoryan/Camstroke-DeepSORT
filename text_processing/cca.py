@@ -168,7 +168,7 @@ def the_algorithm(im, output):
         
         for c in candidates:
             c['mask'] = (labels == c['index']).astype("uint8") * 255
-            draw_bbox(im, c['index'], stats[c['index']], centroids[c['index']], labels, "Candidate")
+            # draw_bbox(im, c['index'], stats[c['index']], centroids[c['index']], labels, "Candidate")
         for n in noises:
             n['mask'] = (labels == n['index']).astype("uint8") * 255
 

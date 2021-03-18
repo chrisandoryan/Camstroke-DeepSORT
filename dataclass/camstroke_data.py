@@ -27,7 +27,7 @@ class Camstroke(object):
             keystroke_data.append(merged)
         return keystroke_data
 
-    def get_existing_kpoint(self, kunit):
+    def _get_existing_kpoint(self, kunit):
         for kp in self.keystroke_points:
             kpoint_xmin, _, kpoint_ymin, _ = kp.last_detection_coordinates
             x_similar = abs(kpoint_xmin - kunit.xmin) <= constants.DETECTION_SENSITIVITY
@@ -37,7 +37,7 @@ class Camstroke(object):
         return None
 
     def store_kunit(self, frame_id, kunit):
-        existing_kpoint = self.get_existing_kpoint(kunit)
+        existing_kpoint = self._get_existing_kpoint(kunit)
         if existing_kpoint != None:
             # print("Using Last KeystrokePoint with ID: ", existing_kpoint.id)
             # print("Kunits: ", len(existing_kpoint.kunits))

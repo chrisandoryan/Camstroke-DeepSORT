@@ -149,6 +149,12 @@ def run_with_yolo(video_path, font_type=FIXEDWIDTH_FONT):
                 detection_shape = (bbox_w, bbox_h)
 
                 font_size = calc_fontsize(ymax, ymin, PPI)
+
+                cursor_move_backwards = xmin - camstroke.last_cursor_position[0] < 0 and xmin - camstroke.last_cursor_position[0] <= -constants.DETECTION_SENSITIVITY
+
+                if cursor_move_backwards:
+                    # TODO: write logic for delete event
+                    print("Delete Event detected")
                 
                 camstroke.last_cursor_position = detection_coordinates
                 camstroke.recorded_fontsizes.append(font_size)
@@ -178,7 +184,7 @@ def run_with_yolo(video_path, font_type=FIXEDWIDTH_FONT):
                         # convert kunit coordinate relative to the video frame, instead of relative to the isolation bbox frame
                         kunit_absolute_coordinates = to_absolute_coordinates(isolation_coordinates, kunit_coordinates)
 
-                        kunit = KUnit(frame_id, c['mask'], kunit_absolute_coordinates, kunit_shape)
+                        kunit = KUnit(frame_id, c['mask'], c['type'], kunit_absolute_coordinates, kunit_shape)
                         _, ocr_result = OCR.run_vanilla(c['mask'])
 
                         kunit.set_ocr_result(ocr_result)
@@ -192,7 +198,7 @@ def run_with_yolo(video_path, font_type=FIXEDWIDTH_FONT):
 
                         kpoint = camstroke.store_kunit(frame_id, kunit)
                         timing_data = kpoint.get_timing_data()
-                        print("Timing Data: ", timing_data)
+                        # print("Timing Data: ", timing_data)
                         
                 # original/unprocessed image
                 # keystroke_image = isolation_window.to_image()
