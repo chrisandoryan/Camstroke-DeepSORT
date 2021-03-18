@@ -50,24 +50,3 @@ class Camstroke(object):
             # print("Kunits: ", len(kpoint.kunits))
             self.keystroke_points.append(kpoint)
             return kpoint
-
-    # Old Function
-    # def merge_keystroke_to_keystroke_points(self, frame_id, isolation_window):
-    #     if len(self.keystroke_points) > 0:
-    #         last_kpoint = self.keystroke_points[-1]
-    #         last_xmin, _, _, _ = last_kpoint.last_detection_coordinates
-    #         if abs(isolation_window.kisolation_xmin - last_xmin) <= constants.DETECTION_SENSITIVITY:
-    #             # print("Using Last KeystrokePoint with ID: ", last_kpoint.id)
-    #             # print("Kunits: ", len(last_kpoint.kunits))
-    #             last_kpoint.add_keystroke_unit(
-    #                 frame_id, isolation_window.get_isolation_coordinates(), isolation_window)
-    #             return last_kpoint
-
-    #     kpoint = KeystrokePoint(
-    #         frame_id, isolation_window.get_isolation_coordinates())
-    #     # print("Creating New KeystrokePoint with ID: ", kpoint.id)
-    #     # print("Kunits: ", len(kpoint.kunits))
-    #     kpoint.add_keystroke_unit(
-    #         frame_id, isolation_window.get_isolation_coordinates(), isolation_window)
-    #     self.keystroke_points.append(kpoint)
-    #     return kpoint

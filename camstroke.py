@@ -194,20 +194,6 @@ def run_with_yolo(video_path, font_type=FIXEDWIDTH_FONT):
                         timing_data = kpoint.get_timing_data()
                         print("Timing Data: ", timing_data)
                         
-                # elif font_type == FIXEDWIDTH_FONT:
-                #     keystroke_image, ocr_result = OCR.run_advanced(isolation_window, enhance=True, pad=False)
-                #     # print("OCR Result: ", ocr_result)
-
-                #     isolation_window.ocr_result = ocr_result
-                #     # conf, keytext = isolation_window.get_character()
-
-                #     if keytext != None:
-                #         print("Detected: ", keytext)
-                #         # print("Isolation Coordinate (x, y): ", floor(isolation_window.kisolation_xmin), floor(isolation_window.kisolation_ymin))
-                #         keypoint = camstroke.merge_keystroke_to_keystroke_points(frame_id, isolation_window)
-                #         timing_data = keypoint.get_timing_data()
-                #         # print(timing_data)
-
                 # original/unprocessed image
                 # keystroke_image = isolation_window.to_image()
 
