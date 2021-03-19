@@ -6,10 +6,11 @@ import cv2
 from PIL import Image, ImageOps
 import numpy as np
 
+RESIZE_FACTOR = 5
+
 def enhance_image(im):
     # print("IM Shape Before: ", im.shape)
     # resize image
-    RESIZE_FACTOR = 5
     im = cv2.resize(im, None, fx=RESIZE_FACTOR,
                     fy=RESIZE_FACTOR, interpolation=cv2.INTER_CUBIC)
 

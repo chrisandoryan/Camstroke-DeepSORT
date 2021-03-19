@@ -30,7 +30,7 @@ class Camstroke(object):
 
     def _get_existing_kpoint(self, kunit):
         for kp in self.keystroke_points:
-            kpoint_xmin, _, kpoint_ymin, _ = kp.last_detection_coordinates
+            kpoint_xmin, kpoint_ymin, _, _ = kp.last_detection_coordinates
             x_similar = abs(kpoint_xmin - kunit.xmin) <= constants.DETECTION_SENSITIVITY
             y_similar = abs(kpoint_ymin - kunit.ymin) <= constants.DETECTION_SENSITIVITY
             if all((x_similar, y_similar)):

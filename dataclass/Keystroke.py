@@ -11,7 +11,7 @@ class KUnit(object):
         self.kunit_image = kunit_image
         self.kunit_type = kunit_type
         self.width, self.height = kunit_shape
-        self.xmin, self.xmax, self.ymin, self.ymax = kunit_coordinates
+        self.xmin, self.ymin, self.xmax, self.ymax = kunit_coordinates
         self.ocr_result = None
 
     def set_ocr_result(self, ocr_result):
@@ -60,7 +60,6 @@ class KeystrokePoint(object):
             return None, None
 
     def add_keystroke_unit(self, frame_id, last_coordinates, kunit):
-        # TODO: add logic to separate rightmost KUnit and candidate KUnit
         if kunit.kunit_type == constants.CANDIDATE_TYPE:
             if len(self.kunits) > 0:
                 print_info("KUnit is a repeated candidate, skipping...")

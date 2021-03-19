@@ -16,6 +16,7 @@ import helpers.utils as utils
 from helpers.font import calc_font_width, calc_fontsize, get_cursor_height
 from helpers.screen import px_to_inch, calc_ppi
 from helpers.video import get_video_size, frame_to_video
+from helpers.image import RESIZE_FACTOR
 
 from dataclass.camstroke_data import Camstroke
 from dataclass.keystroke import KUnit, KeystrokePoint
@@ -93,14 +94,17 @@ def draw_bbox(frame, xmin, ymin, xmax, ymax):
     return frame
 
 def to_absolute_coordinates(isolation_coordinates, kunit_coordinates):
+    # print(isolation_coordinates)
+    # print(kunit_coordinates)
+
     iso_xmin, iso_ymin, iso_xmax, iso_ymax = isolation_coordinates
     kun_xmin, kun_ymin, kun_xmax, kun_ymax = kunit_coordinates
 
     # descale the pixels (normalize)
-    kun_xmin = kun_xmin / 5
-    kun_ymin = kun_ymin / 5
-    kun_xmax = kun_xmax / 5
-    kun_ymax = kun_ymax / 5
+    kun_xmin = kun_xmin / RESIZE_FACTOR
+    kun_ymin = kun_ymin / RESIZE_FACTOR
+    kun_xmax = kun_xmax / RESIZE_FACTOR
+    kun_ymax = kun_ymax / RESIZE_FACTOR
 
     abs_xmin = iso_xmin + kun_xmin
     abs_ymin = iso_ymin + kun_ymin
@@ -243,10 +247,10 @@ def detect_and_extract(font_type):
 
 
 def train_and_predict():
-    camstroke = utils.load_camstroke("results/camstroke.pkl")
+    camstroke = utils.load_camstroke("results/pickles/camstroke_cca.pkl")
     hmm_model, test_data = hmm.train(camstroke.keystroke_points)
 
-    prediction = viterbi.predict(hmm_model, test_data)
+    # prediction = viterbi.predict(hmm_model, test_data)
 
 
 if __name__ == '__main__':
