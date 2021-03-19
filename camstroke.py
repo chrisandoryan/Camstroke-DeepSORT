@@ -198,7 +198,8 @@ def run_with_yolo(video_path, font_type=FIXEDWIDTH_FONT):
 
                         kpoint = camstroke.store_kunit(frame_id, kunit)
                         timing_data = kpoint.get_timing_data()
-                        # print("Timing Data: ", timing_data)
+                        print("Timing Data: ", timing_data)
+                        input()
                         
                 # original/unprocessed image
                 # keystroke_image = isolation_window.to_image()

@@ -5,6 +5,7 @@ from helpers.font import calc_font_height, calc_font_width
 from helpers.image import enhance_image
 from helpers.utils import unique_array_dict
 import time
+from helpers import constants
 
 STACKED_REGION_THRESHOLD = 2 # if two regions is 2 pixels adrift between each other, consider those regions belongs to the same chacter (e.g i and j)
 
@@ -18,12 +19,6 @@ Algorithm v1.0:
 3. if there is two object with exact same X (indicates both aligned vertically), combine both (for i and j case)
 4. the typed character is the rightmost isolated region in the frame (karena karakter terakhir pasti berada tepat sebelum kursor, dimana kursor berada di kanan)
 """
-
-CONNECTIVITY = 8
-CANDIDATE_TYPE = "CANDIDATE"
-RIGHTMOST_TYPE = "RIGHTMOST"
-TALLEST_TYPE = "TALLEST"
-NOISE_TYPE = "NOISE"
 
 def create_region_object(i, stats, centroids, empty=False):
     region_data = {
@@ -130,23 +125,23 @@ def the_algorithm(im, output):
             # get the tallest region / cursor region (assumption 3.1)
             if bbox_h > tallest_region['shape']['h']:
                 tallest_region = create_region_object(i, stats, centroids, empty=False)
-                tallest_region['type'] = TALLEST_TYPE
+                tallest_region['type'] = constants.TALLEST_TYPE
                 # print("Updating TR: ", tallest_region)
             
             # get the rightmost region (assumption 3.2)
             if bbox_x >= rightmost_region['coord']['x'] and bbox_h < tallest_region['shape']['h']:
                 rightmost_region = create_region_object(i, stats, centroids, empty=False)
-                rightmost_region['type'] = RIGHTMOST_TYPE
+                rightmost_region['type'] = constants.RIGHTMOST_TYPE
                 # print("Updating RR: ", rightmost_region)
 
             # get all regions to the left of cursor_region, not intersecting with border (assumption 3.2 alt.)
             if bbox_h < tallest_region['shape']['h'] and (bbox_x + bbox_w < im_width and bbox_x > 0):
                 candidate_region = create_region_object(i, stats, centroids, empty=False)
-                candidate_region['type'] = CANDIDATE_TYPE
+                candidate_region['type'] = constants.CANDIDATE_TYPE
                 candidates.append(candidate_region)
             else:
                 noise_region = create_region_object(i, stats, centroids, empty=False)
-                noise_region['type'] = NOISE_TYPE
+                noise_region['type'] = constants.NOISE_TYPE
                 noises.append(noise_region)
         
         candidates.append(rightmost_region)
@@ -258,6 +253,6 @@ def run_with_stats(keystroke, font_size):
     im = np.array(im)
 
     # apply connected component analysis to the thresholded image
-    cca_result = cv2.connectedComponentsWithStats(im, CONNECTIVITY, cv2.CV_32S)
+    cca_result = cv2.connectedComponentsWithStats(im, constants.CONNECTIVITY, cv2.CV_32S)
     # display_regions(im, font_size, result)
     return the_algorithm(im, cca_result)

@@ -20,3 +20,12 @@ WEIGHT_PATH = "./yolo_deepsort/checkpoints/camstroke-yolov4-416"
 
 # if the next detected keystroke is +- around the last detected keystroke's x coordinate, the detection result is considered to be for the same detection attempt as the previous
 DETECTION_SENSITIVITY = 5  # in pixels, alternatively we can use the font size
+
+# CCA constants
+# CCA using 4 or 8 connectivity
+CONNECTIVITY = 8
+
+CANDIDATE_TYPE = "CANDIDATE"
+RIGHTMOST_TYPE = "RIGHTMOST"
+TALLEST_TYPE = "TALLEST"
+NOISE_TYPE = "NOISE"

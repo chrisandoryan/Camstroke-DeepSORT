@@ -19,12 +19,12 @@ class KUnit(object):
     def get_character(self):
         index = np.argmax(self.ocr_result['conf'])
         if int(self.ocr_result['conf'][index]) < constants.OCR_CONF_THRESHOLD:
-            return 0, ''
+            return 0, '[invalid]'
         else:
             text = self.ocr_result['text'][index]
             conf = self.ocr_result['conf'][index]
             if text in constants.INVALID_KEYSTROKE:
-                return 0, ''
+                return 100, '[invalid]'
             else:
                 return conf, text
     
@@ -38,7 +38,7 @@ class KeystrokePoint(object):
         # when the keystroke first appears on the frames, a substitution for KeyPress timing
         self.k_appear = frame_id
         # when the keystroke last appears on the frames, a substitution for KeyRelease timing
-        self.k_vanish = 0
+        self.k_lastseen = 0
         self.last_detection_coordinates = last_detection_coordinates
         self.kunits = []
 
@@ -60,15 +60,24 @@ class KeystrokePoint(object):
 
     def add_keystroke_unit(self, frame_id, last_coordinates, kunit):
         # TODO: add logic to separate rightmost KUnit and candidate KUnit
-        self.k_vanish = frame_id
+        if kunit.kunit_type == constants.CANDIDATE_TYPE:
+            if len(self.kunits) > 0:
+                print("Repeated candidate, returning")
+                return
+            else:
+                print("Unrecorded candidate, updating last seen")
+                self.k_lastseen = frame_id
+        elif kunit.kunit_type == constants.RIGHTMOST_TYPE:
+            print("Rightmost, updating lastseen")
+            self.k_lastseen = frame_id
         self.last_coordinates = last_coordinates
         self.kunits.append(kunit)
 
     def get_timing_data(self):
         keypress = self.k_appear
-        keyrelease = self.k_vanish
-        keyhold = (self.k_vanish - self.k_appear) / 2
-        keydelay = (self.k_vanish - self.k_appear)
+        keyrelease = self.k_lastseen
+        keyhold = (self.k_lastseen - self.k_appear) / 2
+        keydelay = (self.k_lastseen - self.k_appear)
 
         keytext, confidence = self.get_consensus_keytext()
 
