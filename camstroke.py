@@ -24,7 +24,7 @@ from dataclass.detected_cursor import DetectedCursor
 from dataclass.isolation_window import IsolationWindow
 
 from yolo_deepsort import cursor_tracker, cursor_detector
-import hmm.viterbi_algorithm as viterbi
+import keystroke_prediction.viterbi_algorithm as viterbi
 
 SCREEN_SIZE = 13.3 # in inch
 PROPORTIONAL_FONT = "PROPORTIONAL"
@@ -248,7 +248,7 @@ def detect_and_extract(font_type):
 
 def train_and_predict():
     camstroke = utils.load_camstroke("results/pickles/camstroke_cca.pkl")
-    hmm_model, test_data = hmm.train(camstroke.keystroke_points)
+    hmm_model = hmm.train(camstroke.keystroke_points)
 
     # prediction = viterbi.predict(hmm_model, test_data)
 
@@ -266,9 +266,11 @@ if __name__ == '__main__':
 
     if args.mode == "extract":
         # loop_dataset()
-        font_type = PROPORTIONAL_FONT # run when the font width is proportional (e.g i has smaller width than z)
-        # font_type = FIXEDWIDTH_FONT  # analyze when the font width is fixed (e.g i and z have same width)
+        # PROPORTIONAL: run when the font width is proportional (e.g i has smaller width than z)
+        # FIXED-WIDTH: analyze when the font width is fixed (e.g i and z have same width)
+        font_type = PROPORTIONAL_FONT 
         detect_and_extract(font_type)
     elif args.mode == "train":
-        import hmm.hidden_markov as hmm
+        # import keystroke_prediction.pohmm as pohmm
+        import keystroke_prediction.hmm as hmm
         train_and_predict()

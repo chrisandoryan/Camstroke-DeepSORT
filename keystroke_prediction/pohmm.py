@@ -2,23 +2,7 @@ from pohmm import Pohmm, PohmmClassifier
 import pandas as pd
 import numpy as np
 from helpers.utils import print_full
-
-def preprocess(kpoints):
-    data = [kp.get_timing_data() for kp in kpoints]
-    df = pd.DataFrame(data)
-    df.set_index('id', inplace=True)
-
-    dataset = df[['keypress', 'keyrelease',
-                  'keyhold', 'keydelay', 'keytext']].copy()
-    for col_name in dataset:
-        dataset.loc[df[col_name] == 0, col_name] = 1e-5
-
-    return dataset
-
-def split_dataset(dataset, split_factor=0.7):
-    dataset = dataset[:int(len(dataset)/3)]
-    train_data, test_data = dataset[:int(len(dataset)*split_factor)], dataset[int(len(dataset)*split_factor):]
-    return train_data, test_data
+from helpers.hmm import preprocess, split_dataset
 
 def keystroke_model():
     # """Generates a 2-state model with lognormal emissions and frequency smoothing"""
@@ -61,4 +45,4 @@ def train(kpoints):
     # result = hmm_model.predict_df(dataset, pstate_col='keytext')
     # print(result)
 
-    return hmm_model, test_data
+    return hmm_model
