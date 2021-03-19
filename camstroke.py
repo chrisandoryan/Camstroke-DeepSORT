@@ -199,7 +199,7 @@ def run_with_yolo(video_path, font_type=FIXEDWIDTH_FONT):
                         kpoint = camstroke.store_kunit(frame_id, kunit)
                         timing_data = kpoint.get_timing_data()
                         print("Timing Data: ", timing_data)
-                        input()
+                        # input()
                         
                 # original/unprocessed image
                 # keystroke_image = isolation_window.to_image()
@@ -217,12 +217,14 @@ def run_with_yolo(video_path, font_type=FIXEDWIDTH_FONT):
     # frame_to_video(frames, 'output.avi', image_w, image_h)
 
     # store camstroke data for further processing
-    # utils.save_camstroke(camstroke, "results/camstroke.pkl")
+    utils.save_camstroke(camstroke, "results/pickles/camstroke_cca.pkl")
 
     # pass data to hmm learning
     # keystroke_points = camstroke.keystroke_points
     # print(keystroke_points)
     # hmm.train(keystroke_points)
+
+    print("Done.")
 
 
 def loop_dataset():

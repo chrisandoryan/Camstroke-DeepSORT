@@ -50,9 +50,9 @@ def detect_cursor(path_to_video, path_to_weight, input_size=416, framework='tf',
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(frame)
         else:
-            print(frame_id, vid.get(cv2.CAP_PROP_FRAME_COUNT))
+            # print(frame_id, vid.get(cv2.CAP_PROP_FRAME_COUNT))
             if frame_id - 1 == vid.get(cv2.CAP_PROP_FRAME_COUNT):
-                print("Video processing complete")
+                print("Video processing complete (%d/%d)" % (frame_id - 1, vid.get(cv2.CAP_PROP_FRAME_COUNT)))
                 break
             raise ValueError("No image! Try with another video format")
         

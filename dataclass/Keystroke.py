@@ -3,6 +3,7 @@ from collections import defaultdict
 import operator
 import numpy as np
 from helpers import constants
+from helpers.utils import print_info
 
 class KUnit(object):
     def __init__(self, frame_id, kunit_image, kunit_type, kunit_coordinates, kunit_shape):
@@ -62,13 +63,13 @@ class KeystrokePoint(object):
         # TODO: add logic to separate rightmost KUnit and candidate KUnit
         if kunit.kunit_type == constants.CANDIDATE_TYPE:
             if len(self.kunits) > 0:
-                print("Repeated candidate, returning")
+                print_info("KUnit is a repeated candidate, skipping...")
                 return
             else:
-                print("Unrecorded candidate, updating last seen")
+                print_info("KUnit is an unrecorded candidate; Updating lastseen data...")
                 self.k_lastseen = frame_id
         elif kunit.kunit_type == constants.RIGHTMOST_TYPE:
-            print("Rightmost, updating lastseen")
+            print_info("KUnit is a rightmost candidate; Updating lastseen data...")
             self.k_lastseen = frame_id
         self.last_coordinates = last_coordinates
         self.kunits.append(kunit)

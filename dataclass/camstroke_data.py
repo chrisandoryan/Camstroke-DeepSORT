@@ -1,4 +1,5 @@
 import helpers.utils as utils
+from helpers.utils import print_info
 from helpers import constants
 
 from dataclass.keystroke import KeystrokePoint
@@ -32,21 +33,21 @@ class Camstroke(object):
             kpoint_xmin, _, kpoint_ymin, _ = kp.last_detection_coordinates
             x_similar = abs(kpoint_xmin - kunit.xmin) <= constants.DETECTION_SENSITIVITY
             y_similar = abs(kpoint_ymin - kunit.ymin) <= constants.DETECTION_SENSITIVITY
-            if any((x_similar, y_similar)):
+            if all((x_similar, y_similar)):
                 return kp
         return None
 
     def store_kunit(self, frame_id, kunit):
         existing_kpoint = self._get_existing_kpoint(kunit)
         if existing_kpoint != None:
-            # print("Using Last KeystrokePoint with ID: ", existing_kpoint.id)
+            print_info("Storing KUnit to Last KeystrokePoint with ID: %s" % existing_kpoint.id)
             # print("Kunits: ", len(existing_kpoint.kunits))
             existing_kpoint.add_keystroke_unit(frame_id, kunit.get_coordinates(), kunit)
             return existing_kpoint
         else:
             kpoint = KeystrokePoint(frame_id, kunit.get_coordinates())
             kpoint.add_keystroke_unit(frame_id, kunit.get_coordinates(), kunit)
-            # print("Creating New KeystrokePoint with ID: ", kpoint.id)
+            print_info("Creating New KeystrokePoint with ID: %s" % kpoint.id)
             # print("Kunits: ", len(kpoint.kunits))
             self.keystroke_points.append(kpoint)
             return kpoint

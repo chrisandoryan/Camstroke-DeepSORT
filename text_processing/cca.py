@@ -6,8 +6,9 @@ from helpers.image import enhance_image
 from helpers.utils import unique_array_dict
 import time
 from helpers import constants
+from helpers.utils import print_info
 
-STACKED_REGION_THRESHOLD = 2 # if two regions is 2 pixels adrift between each other, consider those regions belongs to the same chacter (e.g i and j)
+STACKED_REGION_THRESHOLD = 5 # if two regions is 5 pixels adrift between each other, consider those regions belongs to the same chacter (e.g i and j)
 
 """
 Performs connected component labelling (CCA/CCL) for isolating characters from image.
@@ -106,7 +107,7 @@ def the_algorithm(im, output):
     candidates = []
 
     if numLabels <= 2:
-        print("Skipping since only 2 regions detected")
+        print_info("Skipping CCA since only 2 regions detected.")
         pass
     else:
         # get background region (assumption 1)

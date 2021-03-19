@@ -21,3 +21,6 @@ def unique_array_dict(L, key):
 
 def calc_average(arr):
     return sum(arr) / len(arr)
+
+def print_info(s):
+    print("[INFO] %s" % s)
