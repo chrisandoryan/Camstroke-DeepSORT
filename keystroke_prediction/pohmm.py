@@ -45,4 +45,4 @@ def train(kpoints):
     # result = hmm_model.predict_df(dataset, pstate_col='keytext')
     # print(result)
 
-    return hmm_model
+    return hmm_model, test_data

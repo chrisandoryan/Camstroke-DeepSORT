@@ -1,8 +1,12 @@
 Keystroke Inference
 
 Emission-based
-1. 
-2.
+1. SpiderMon: Towards Using Cell Towers as Illuminating Sources for Keystroke Monitoring (2020) <- base paper for HMM
+Input Media: 4G distruption on ATM PIN input
+Observed variables: horizontal/vertical movement directions
+2. Timing analysis of keystrokes and timing attacks on SSH (2001)
+Input Media: SSH Packets
+Observed variables: Using inter-keystroke latency (The time difference between two key presses)
 3.
 4.
 5.
@@ -12,6 +16,12 @@ Vision-based
 8.
 9.
 10.
+
+Text Extraction from Video
+1. Scene text extraction from videos using hybrid approach (2013)
+
+HMM
+1. A tutorial on hidden Markov models and selected applications in speech recognition (1989)
 
 References
 1. 

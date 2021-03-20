@@ -248,9 +248,10 @@ def detect_and_extract(font_type):
 
 def train_and_predict():
     camstroke = utils.load_camstroke("results/pickles/camstroke_cca.pkl")
+    pohmm_model, test_data = pohmm.train(camstroke.keystroke_points)
     hmm_model = hmm.train(camstroke.keystroke_points)
 
-    # prediction = viterbi.predict(hmm_model, test_data)
+    prediction = viterbi.predict(pohmm_model, test_data)
 
 
 if __name__ == '__main__':
@@ -271,6 +272,6 @@ if __name__ == '__main__':
         font_type = PROPORTIONAL_FONT 
         detect_and_extract(font_type)
     elif args.mode == "train":
-        # import keystroke_prediction.pohmm as pohmm
+        import keystroke_prediction.pohmm as pohmm
         import keystroke_prediction.hmm as hmm
         train_and_predict()

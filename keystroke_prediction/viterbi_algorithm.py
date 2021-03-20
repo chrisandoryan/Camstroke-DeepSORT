@@ -42,6 +42,10 @@ def viterbi(y, A, B, Pi=None):
     T2 = np.empty((K, T), 'B')
 
     # Initilaize the tracking tables from first observation
+    print('B', B)
+    print('y0', y[0][0])
+    print('By0', B[:, y[0]])
+    print('T1', T1[:, 0])
     T1[:, 0] = Pi * B[:, y[0]]
     T2[:, 0] = 0
 
@@ -67,8 +71,8 @@ def predict(hmm_model, test_data):
     
     transition_mat = hmm_model.transmat
     print("State Transitions: ", hmm_model.transmat)
-
-    prediction = viterbi([test_data.values], transition_mat, emission_mat)
+    print('gege', [test_data.to_numpy()])
+    prediction = viterbi([test_data.to_numpy()], transition_mat, emission_mat)
     print(prediction)
 
     return
