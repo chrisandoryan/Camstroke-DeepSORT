@@ -106,7 +106,7 @@ def the_algorithm(im, output):
     noises = []
     candidates = []
 
-    if numLabels <= 2:
+    if numLabels <= 0:
         print_info("Skipping CCA since only 2 regions detected.")
         pass
     else:

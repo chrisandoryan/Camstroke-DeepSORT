@@ -54,7 +54,8 @@ def detect_cursor(path_to_video, path_to_weight, input_size=416, framework='tf',
             if frame_id - 1 == vid.get(cv2.CAP_PROP_FRAME_COUNT):
                 print("Video processing complete (%d/%d)" % (frame_id - 1, vid.get(cv2.CAP_PROP_FRAME_COUNT)))
                 break
-            raise ValueError("No image! Try with another video format")
+            print("No image! Try with another video format")
+            break
         
         frame_size = frame.shape[:2]
         image_data = cv2.resize(frame, (input_size, input_size))

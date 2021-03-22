@@ -26,10 +26,6 @@ from dataclass.isolation_window import IsolationWindow
 from yolo_deepsort import cursor_tracker, cursor_detector
 import keystroke_prediction.viterbi_algorithm as viterbi
 
-SCREEN_SIZE = 13.3 # in inch
-PROPORTIONAL_FONT = "PROPORTIONAL"
-FIXEDWIDTH_FONT = "FIXED-WIDTH"
-
 #initialize color map
 cmap = plt.get_cmap('tab20b')
 colors = [cmap(i)[:3] for i in np.linspace(0, 1, 20)]
@@ -55,14 +51,14 @@ def crop_isolation_window(frame, font_size, detection_coordinates, font_type, cr
 
     # normalize the isolation box coordinate near the center of cursor bounding box
     # based on font type (fixed-width/proportional)
-    if font_type == PROPORTIONAL_FONT:
+    if font_type == constants.PROPORTIONAL_FONT:
         cursor_x_center = (cursor_xmax - cursor_xmin) / 2
 
         xmin = (cursor_xmin - (2 * font_width)) # + (cursor_x_center * 0.5)
         ymin = cursor_ymin
         xmax = cursor_xmax # cursor_xmin + (cursor_x_center)
         ymax = cursor_ymax
-    elif font_type == FIXEDWIDTH_FONT:
+    elif font_type == constants.FIXEDWIDTH_FONT:
         cursor_x_center = (cursor_xmax - cursor_xmin) / 2
 
         xmin = (cursor_xmin - font_width) + cursor_x_center
@@ -134,14 +130,14 @@ def map_cursor_movements(coords, last_coords, font_size):
 
     return
 
-def run_with_yolo(video_path, font_type=FIXEDWIDTH_FONT, screen_size=SCREEN_SIZE):
+def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=constants.SCREEN_SIZE):
     camstroke = Camstroke()
     consecutive_streak = 0
 
     vwidth, vheight = get_video_size(video_path)
     PPI = calc_ppi(vwidth, vheight, screen_size_inch=screen_size)
 
-    for i, detected in enumerate(cursor_detector.detect_cursor(video_path, constants.WEIGHT_PATH, score_threshold=0.20)):
+    for i, detected in enumerate(cursor_detector.detect_cursor(video_path, constants.WEIGHT_PATH, score_threshold=0.00)):
         frame, frame_id, pred_result = detected
         image_h, image_w, _ = frame.shape
 
@@ -154,9 +150,9 @@ def run_with_yolo(video_path, font_type=FIXEDWIDTH_FONT, screen_size=SCREEN_SIZE
             consecutive_streak += 1
             # print("Cons. Streak: ", consecutive_streak)
             for i in range(valid_detections[0]):
-                # if frame_id % 10 == 0:
-                #     print("Detection no. %d on Frame %d" % (i, frame_id))
-                #     print("Score:", scores[0][i])
+                if frame_id % 10 == 0:
+                    print("Detection no. %d on Frame %d" % (i, frame_id))
+                    print("Score:", scores[0][i])
 
                 coor = boxes[0][i]
                 # print("Coor: ", coor)
@@ -189,7 +185,7 @@ def run_with_yolo(video_path, font_type=FIXEDWIDTH_FONT, screen_size=SCREEN_SIZE
                 camstroke.detected_cursors.append(detected_cursor)
                 camstroke.isolation_windows.append(isolation_window)
 
-                if font_type == PROPORTIONAL_FONT:
+                if font_type == constants.PROPORTIONAL_FONT:
                     # perform connected component labelling (CCA)
                     keystroke_candidates, noises = cca.run_with_stats(isolation_window, font_size)
                     # print("Candidates for coordinate (x,y): ", xmin, ymin)
@@ -238,7 +234,7 @@ def run_with_yolo(video_path, font_type=FIXEDWIDTH_FONT, screen_size=SCREEN_SIZE
     # frame_to_video(frames, 'output.avi', image_w, image_h)
 
     # store camstroke data for further processing
-    utils.save_camstroke(camstroke, "results/pickles/camstroke_cca.pkl")
+    utils.save_camstroke(camstroke, "results/pickles/camstroke_forgery_attack.pkl")
 
     # pass data to hmm learning
     # keystroke_points = camstroke.keystroke_points
@@ -246,6 +242,7 @@ def run_with_yolo(video_path, font_type=FIXEDWIDTH_FONT, screen_size=SCREEN_SIZE
     # hmm.train(keystroke_points)
 
     print("Done.")
+    return camstroke
 
 
 def loop_dataset():
@@ -256,14 +253,14 @@ def loop_dataset():
         run_with_yolo(video_path)
 
 
-def detect_and_extract(font_type, screen_size):
+def _detect_and_extract(font_type, screen_size):
     video_path = "../Datasets/vscode_gfont2.mp4" # proportional font
     # video_path = "../Datasets/vscode_cut.mp4" # fixed-width font
     # print("Extracting from {}".format(video_path))
     run_with_yolo(video_path, font_type, screen_size)
 
 
-def train_and_predict():
+def _train_and_predict():
     camstroke = utils.load_camstroke("results/pickles/camstroke_cca.pkl")
     pohmm_model, test_data = pohmm.train(camstroke.keystroke_points)
     hmm_model = hmm.train(camstroke.keystroke_points)
@@ -287,9 +284,9 @@ if __name__ == '__main__':
         # PROPORTIONAL: run when the font width is proportional (e.g i has smaller width than z)
         # FIXED-WIDTH: analyze when the font width is fixed (e.g i and z have same width)
         screen_size = float(input("Enter your Screen Size (inch): "))
-        font_type = PROPORTIONAL_FONT 
-        detect_and_extract(font_type, screen_size)
+        font_type = constants.PROPORTIONAL_FONT 
+        _detect_and_extract(font_type, screen_size)
     elif args.mode == "train":
         import keystroke_prediction.pohmm as pohmm
         import keystroke_prediction.hmm as hmm
-        train_and_predict()
+        _train_and_predict()

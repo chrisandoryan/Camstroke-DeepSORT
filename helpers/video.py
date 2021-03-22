@@ -12,3 +12,9 @@ def frame_to_video(frames, output_path, w, h):
     for frame in frames:
         out.write(frame)
     out.release()
+
+def get_fps(video_path):
+    vid = cv2.VideoCapture(video_path)
+    fps = vid.get(cv2.CAP_PROP_FPS)
+    return fps
+    
