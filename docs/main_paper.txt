@@ -1,5 +1,9 @@
-Keystroke Inference
+Project Outputs
+1. defeat the already applied biometric based authentication (e.g. www.keytrac.net)
+2. reduce search space for finding the right password based on user typing pattern
+Better yang mana?
 
+Keystroke Inference
 Emission-based
 1. SpiderMon: Towards Using Cell Towers as Illuminating Sources for Keystroke Monitoring (2020) <- base paper for HMM
 Input Media: 4G distruption on ATM PIN input

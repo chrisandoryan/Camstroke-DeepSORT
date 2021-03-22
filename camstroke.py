@@ -114,12 +114,32 @@ def to_absolute_coordinates(isolation_coordinates, kunit_coordinates):
     abs_coordinates = (abs_xmin, abs_ymin, abs_xmax, abs_ymax)
     return abs_coordinates
 
-def run_with_yolo(video_path, font_type=FIXEDWIDTH_FONT):
+def check_cursor_backwards(coords, last_coords):
+    xmin, ymin, xmax, ymax = coords
+    last_xmin, last_ymin, last_xmax, last_ymax = last_coords
+    return xmin - last_xmin < 0 and xmin - last_xmin <= -constants.DETECTION_SENSITIVITY
+
+def map_cursor_movements(coords, last_coords, font_size):
+    # TODO: map cursor movements 
+    # backwards, new line, teleporting
+    font_height = calc_font_height(font_size)
+    font_width = calc_font_width(font_size)
+
+    xmin, ymin, xmax, ymax = coords
+    last_xmin, last_ymin, last_xmax, last_ymax = last_coords
+
+    cursor_backward = xmin - last_xmin < 0 and xmin - last_xmin <= -constants.DETECTION_SENSITIVITY
+    # cursor_teleport = xmin - last_xmin >= font_width or ymin 
+    # cursor_newline
+
+    return
+
+def run_with_yolo(video_path, font_type=FIXEDWIDTH_FONT, screen_size=SCREEN_SIZE):
     camstroke = Camstroke()
     consecutive_streak = 0
 
     vwidth, vheight = get_video_size(video_path)
-    PPI = calc_ppi(vwidth, vheight, screen_size_inch=SCREEN_SIZE)
+    PPI = calc_ppi(vwidth, vheight, screen_size_inch=screen_size)
 
     for i, detected in enumerate(cursor_detector.detect_cursor(video_path, constants.WEIGHT_PATH, score_threshold=0.20)):
         frame, frame_id, pred_result = detected
@@ -154,10 +174,7 @@ def run_with_yolo(video_path, font_type=FIXEDWIDTH_FONT):
 
                 font_size = calc_fontsize(ymax, ymin, PPI)
 
-                cursor_move_backwards = xmin - camstroke.last_cursor_position[0] < 0 and xmin - camstroke.last_cursor_position[0] <= -constants.DETECTION_SENSITIVITY
-
-                if cursor_move_backwards:
-                    # TODO: write logic for delete event
+                if check_cursor_backwards(detection_coordinates, camstroke.last_cursor_position):
                     print("Delete Event detected")
                 
                 camstroke.last_cursor_position = detection_coordinates
@@ -239,11 +256,11 @@ def loop_dataset():
         run_with_yolo(video_path)
 
 
-def detect_and_extract(font_type):
+def detect_and_extract(font_type, screen_size):
     video_path = "../Datasets/vscode_gfont2.mp4" # proportional font
     # video_path = "../Datasets/vscode_cut.mp4" # fixed-width font
     # print("Extracting from {}".format(video_path))
-    run_with_yolo(video_path, font_type)
+    run_with_yolo(video_path, font_type, screen_size)
 
 
 def train_and_predict():
@@ -269,8 +286,9 @@ if __name__ == '__main__':
         # loop_dataset()
         # PROPORTIONAL: run when the font width is proportional (e.g i has smaller width than z)
         # FIXED-WIDTH: analyze when the font width is fixed (e.g i and z have same width)
+        screen_size = float(input("Enter your Screen Size (inch): "))
         font_type = PROPORTIONAL_FONT 
-        detect_and_extract(font_type)
+        detect_and_extract(font_type, screen_size)
     elif args.mode == "train":
         import keystroke_prediction.pohmm as pohmm
         import keystroke_prediction.hmm as hmm
