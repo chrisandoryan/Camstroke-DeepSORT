@@ -25,7 +25,7 @@ def read_data(data_path):
         line_count = 0
         for row in csv_reader:
             if line_count == 0:
-                print(f'Column names are {", ".join(row)}')
+                # print(f'Column names are {", ".join(row)}')
                 line_count += 1
             else:
                 result.append(dict(row))
@@ -84,7 +84,7 @@ def store_keystroke(event_type, data):
             'keyrelease': stroke_time,
             'keyhold': abs(data['keypress'] - stroke_time),
         })
-    print(keystroke_data)
+    # print(keystroke_data)
 
 
 def on_press(key):
@@ -129,8 +129,8 @@ if __name__ == '__main__':
     currentdir = os.path.dirname(os.path.realpath(__file__))
     parentdir = os.path.dirname(currentdir)
     sys.path.append(parentdir)
-
     from helpers import keylog as keylogutils
+
     # run()
     keystroke_data = read_data(DATA_PATH)
     keylogutils.plotDUT(keystroke_data)

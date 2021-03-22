@@ -15,7 +15,7 @@ from helpers import constants
 import helpers.utils as utils
 from helpers.font import calc_font_width, calc_fontsize, get_cursor_height
 from helpers.screen import px_to_inch, calc_ppi
-from helpers.video import get_video_size, frame_to_video
+from helpers.video import get_video_size, frame_to_video, get_fps
 from helpers.image import RESIZE_FACTOR
 
 from dataclass.camstroke_data import Camstroke
@@ -137,9 +137,14 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
     vwidth, vheight = get_video_size(video_path)
     PPI = calc_ppi(vwidth, vheight, screen_size_inch=screen_size)
 
+    print("Video Size: %s x %s" % (vwidth, vheight))
+    print("Video FPS: %s" % fps)
+    print("PPI: %s " % PPI)
+
     for i, detected in enumerate(cursor_detector.detect_cursor(video_path, constants.WEIGHT_PATH, score_threshold=0.00)):
         frame, frame_id, pred_result = detected
         image_h, image_w, _ = frame.shape
+        fps = get_fps(video_path)
 
         # for fast-testing
         # if frame_id >= 100:
@@ -214,7 +219,7 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
                         # print()
 
                         kpoint = camstroke.store_kunit(frame_id, kunit)
-                        timing_data = kpoint.get_timing_data()
+                        timing_data = kpoint.get_timing_data(fps)
                         print("Timing Data: ", timing_data)
                         # input()
                         
@@ -234,7 +239,7 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
     # frame_to_video(frames, 'output.avi', image_w, image_h)
 
     # store camstroke data for further processing
-    utils.save_camstroke(camstroke, "results/pickles/camstroke_forgery_attack.pkl")
+    utils.save_camstroke(camstroke, "results/experiments/test_2/camstroke_forgery_attack.pkl")
 
     # pass data to hmm learning
     # keystroke_points = camstroke.keystroke_points
@@ -262,10 +267,10 @@ def _detect_and_extract(font_type, screen_size):
 
 def _train_and_predict():
     camstroke = utils.load_camstroke("results/pickles/camstroke_cca.pkl")
-    pohmm_model, test_data = pohmm.train(camstroke.keystroke_points)
-    hmm_model = hmm.train(camstroke.keystroke_points)
+    # pohmm_model, test_data = pohmm.train(camstroke.keystroke_points)
+    # hmm_model = hmm.train(camstroke.keystroke_points)
 
-    prediction = viterbi.predict(pohmm_model, test_data)
+    # prediction = viterbi.predict(pohmm_model, test_data)
 
 
 if __name__ == '__main__':

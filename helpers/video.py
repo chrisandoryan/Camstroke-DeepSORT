@@ -17,4 +17,8 @@ def get_fps(video_path):
     vid = cv2.VideoCapture(video_path)
     fps = vid.get(cv2.CAP_PROP_FPS)
     return fps
-    
+
+# convert 1 frame to miliseconds based on FPS
+def frame_to_ms(fps, n_frame):
+    return (1000/fps) * n_frame
+

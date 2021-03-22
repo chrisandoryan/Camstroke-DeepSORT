@@ -4,6 +4,7 @@ import operator
 import numpy as np
 from helpers import constants
 from helpers.utils import print_info
+from helpers.video import frame_to_ms
 
 class KUnit(object):
     def __init__(self, frame_id, kunit_image, kunit_type, kunit_coordinates, kunit_shape):
@@ -73,11 +74,16 @@ class KeystrokePoint(object):
         self.last_coordinates = last_coordinates
         self.kunits.append(kunit)
 
-    def get_timing_data(self):
+    def get_timing_data(self, fps):
+        """
+        1. Time between keydown and keyup (keyhold) DUT
+        2. Time between keydown events (keydelay) DDT
+        how to compute them?
+        """
         keypress = self.k_appear
         keyrelease = self.k_lastseen
-        keyhold = (self.k_lastseen - self.k_appear) / 2
-        keydelay = (self.k_lastseen - self.k_appear)
+        keyhold = frame_to_ms(fps, (self.k_lastseen - self.k_appear) / 2)
+        keydelay = frame_to_ms(fps, (self.k_lastseen - self.k_appear))
 
         keytext, confidence = self.get_consensus_keytext()
 
