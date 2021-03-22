@@ -11,7 +11,7 @@ if __name__ == "__main__":
     video_path = "../Datasets/keystroke_dynamic_forgery_2.mp4"
     fps = get_fps(video_path)
 
-    camstroke = run_with_yolo(video_path, font_type, screen_size)
+    # camstroke = run_with_yolo(video_path, font_type, screen_size)
     camstroke = load_camstroke("results/experiments/test_2/camstroke_forgery_attack.pkl")
 
     plotDDT([x.get_timing_data(fps) for x in camstroke.keystroke_points])

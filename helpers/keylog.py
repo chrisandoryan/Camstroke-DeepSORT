@@ -24,6 +24,5 @@ def plotGraph(y, event_type):
     plt.ylabel("Milliseconds")
     plt.plot(x, y)
     # Format average display box
-    plt.text(5, 35, ("WPM: ", wpm, "Average", average), style='italic',
-             bbox={'facecolor': 'red', 'alpha': 0.5, 'pad': 10})
+    # plt.text(5, 35, ("WPM: ", wpm, "Average", average), style='italic', bbox={'facecolor': 'red', 'alpha': 0.5, 'pad': 10})
     plt.show()

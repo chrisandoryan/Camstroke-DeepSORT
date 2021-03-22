@@ -24,3 +24,6 @@ def calc_average(arr):
 
 def print_info(s):
     print("[INFO] %s" % s)
+
+def epoch_to_millis(time):
+    return round(time * 1000)

@@ -136,6 +136,7 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
 
     vwidth, vheight = get_video_size(video_path)
     PPI = calc_ppi(vwidth, vheight, screen_size_inch=screen_size)
+    fps = get_fps(video_path)
 
     print("Video Size: %s x %s" % (vwidth, vheight))
     print("Video FPS: %s" % fps)
@@ -144,7 +145,6 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
     for i, detected in enumerate(cursor_detector.detect_cursor(video_path, constants.WEIGHT_PATH, score_threshold=0.00)):
         frame, frame_id, pred_result = detected
         image_h, image_w, _ = frame.shape
-        fps = get_fps(video_path)
 
         # for fast-testing
         # if frame_id >= 100:

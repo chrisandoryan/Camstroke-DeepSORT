@@ -3,6 +3,9 @@ import pandas as pd
 import time
 import uuid
 import csv
+from helpers import keylog as keylogutils
+from helpers.utils import epoch_to_millis
+
 
 """
 Metrics collected:
@@ -88,7 +91,7 @@ def store_keystroke(event_type, data):
 
 
 def on_press(key):
-    stroke_time = time.time()
+    stroke_time = epoch_to_millis(time.time())
     try:
         char = key.char
     except AttributeError:
@@ -99,7 +102,7 @@ def on_press(key):
 
 
 def on_release(key):
-    stroke_time = time.time()
+    stroke_time = epoch_to_millis(time.time())
     char = key
     store_keystroke("release", (char, stroke_time))
     if key == keyboard.Key.esc:
@@ -129,8 +132,7 @@ if __name__ == '__main__':
     currentdir = os.path.dirname(os.path.realpath(__file__))
     parentdir = os.path.dirname(currentdir)
     sys.path.append(parentdir)
-    from helpers import keylog as keylogutils
-
+    
     # run()
     keystroke_data = read_data(DATA_PATH)
     keylogutils.plotDUT(keystroke_data)
