@@ -11,8 +11,12 @@ from skimage.segmentation import watershed
 from scipy import ndimage
 import imutils
 from helpers import constants
+from helpers.utils import print_full
 from skimage import io, morphology
 from skan import skeleton_to_csgraph
+from skan import Skeleton, summarize
+import matplotlib.pyplot as plt
+from skan import draw
 
 def display(im, title="An Image"):
     cv2.imshow(title, im)
@@ -89,18 +93,37 @@ def perform_watershed(im):
     return im
 
 def find_branch_points(skeletion_im):
-    pixel_graph, coordinates, degrees = skeleton_to_csgraph(skeletion_im)
-    # consider all values larger than two as intersection
-    intersection_matrix = degrees > 2
-    return intersection_matrix
+    branch_data = summarize(Skeleton(skeletion_im))
+
+    # to draw skeleton network
+    # pixel_graph, coordinates, degrees = skeleton_to_csgraph(skeletion_im)
+    # fig, axes = plt.subplots(1, 2)
+    # draw.overlay_skeleton_networkx(pixel_graph, coordinates, image=skeletion_im, axis=axes[0])
+    return branch_data
 
 # this function is necessary to separate a character that intersect/overlap with the cursor (or another character), so that the captured timings can be more effective.
 # https://stackoverflow.com/questions/14211413/segmentation-for-connected-characters
 def solve_overlapping(overlap_im):
+    imw, imh = overlap_im.shape
+
+    # skeletonize the frame
     im = skeletonization(overlap_im)
     display(im)
-    intersection = find_branch_points(im)
-    print(intersection)
+
+    # find branch point
+    """
+    Branch Type: 
+    1: endpoint-to-endpoint (isolated branch)
+    2: junction-to-endpoint
+    3: junction-to-junction
+    4: isolated cycle
+    """
+    bp = find_branch_points(im)
+    print_full(bp)
+
+    # dilate the frame (deskeletonize)
+    kernel = np.ones((1, 1), np.uint8)
+    
 
 def enhance_image(im):
     # resize image
