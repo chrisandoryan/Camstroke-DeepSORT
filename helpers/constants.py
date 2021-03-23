@@ -21,6 +21,9 @@ WEIGHT_PATH = "./yolo_deepsort/checkpoints/camstroke-yolov4-416"
 # if the next detected keystroke is +- around the last detected keystroke's x coordinate, the detection result is considered to be for the same detection attempt as the previous
 DETECTION_SENSITIVITY = 2  # in pixels, alternatively we can use the font size
 
+# image helper constants
+RESIZE_FACTOR = 5
+
 # CCA constants
 # CCA using 4 or 8 connectivity
 CONNECTIVITY = 8
@@ -29,6 +32,10 @@ CANDIDATE_TYPE = "CANDIDATE"
 RIGHTMOST_TYPE = "RIGHTMOST"
 TALLEST_TYPE = "TALLEST"
 NOISE_TYPE = "NOISE"
+
+# if a cursor region has width more than threshold, it might be because a character is overlapping with the cursor
+# https://www.tenforums.com/tutorials/95305-change-text-cursor-thickness-windows-10-a.html
+OVERLAPPING_WIDTH_THRESHOLD = 2 * RESIZE_FACTOR
 
 # screen constants
 SCREEN_SIZE = 13.3 # in inch

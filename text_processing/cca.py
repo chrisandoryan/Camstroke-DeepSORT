@@ -122,6 +122,10 @@ def the_algorithm(im, output):
             bbox_x = stats[i, cv2.CC_STAT_LEFT]
             bbox_w = stats[i, cv2.CC_STAT_WIDTH]
             bbox_h = stats[i, cv2.CC_STAT_HEIGHT]
+            area = stats[i, cv2.CC_STAT_AREA]
+
+            # if area is smaller than certain threshold, skip.
+            # if area < 
 
             # get the tallest region / cursor region (assumption 3.1)
             if bbox_h > tallest_region['shape']['h']:
@@ -145,6 +149,13 @@ def the_algorithm(im, output):
                 noise_region['type'] = constants.NOISE_TYPE
                 noises.append(noise_region)
         
+        # if tallest region width is bigger than certain threshold, there might be a character overlapped with the cursor.
+        # so we marked it as a candidates, otherwise it's a noise.
+        if tallest_region['shape']['w'] >= constants.OVERLAPPING_WIDTH_THRESHOLD:
+            candidates.append(tallest_region)
+        else:
+            noises.append(tallest_region)
+
         candidates.append(rightmost_region)
         candidates = unique_array_dict(candidates, "index")
 
@@ -159,12 +170,12 @@ def the_algorithm(im, output):
             labels[labels == a_index] = b_index
 
         # TODO: noises hasn't been processed with stacked regions detection
-        noises.append(tallest_region)
+
         noises = unique_array_dict(noises, "index")
         
         for c in candidates:
             c['mask'] = (labels == c['index']).astype("uint8") * 255
-            # draw_bbox(im, c['index'], stats[c['index']], centroids[c['index']], labels, "Candidate")
+            draw_bbox(im, c['index'], stats[c['index']], centroids[c['index']], labels, "Candidate")
         for n in noises:
             n['mask'] = (labels == n['index']).astype("uint8") * 255
 

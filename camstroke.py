@@ -16,7 +16,7 @@ import helpers.utils as utils
 from helpers.font import calc_font_width, calc_fontsize, get_cursor_height
 from helpers.screen import px_to_inch, calc_ppi
 from helpers.video import get_video_size, frame_to_video, get_fps
-from helpers.image import RESIZE_FACTOR
+from helpers.image import perform_watershed
 
 from dataclass.camstroke_data import Camstroke
 from dataclass.keystroke import KUnit, KeystrokePoint
@@ -97,10 +97,10 @@ def to_absolute_coordinates(isolation_coordinates, kunit_coordinates):
     kun_xmin, kun_ymin, kun_xmax, kun_ymax = kunit_coordinates
 
     # descale the pixels (normalize)
-    kun_xmin = kun_xmin / RESIZE_FACTOR
-    kun_ymin = kun_ymin / RESIZE_FACTOR
-    kun_xmax = kun_xmax / RESIZE_FACTOR
-    kun_ymax = kun_ymax / RESIZE_FACTOR
+    kun_xmin = kun_xmin / constants.RESIZE_FACTOR
+    kun_ymin = kun_ymin / constants.RESIZE_FACTOR
+    kun_xmax = kun_xmax / constants.RESIZE_FACTOR
+    kun_ymax = kun_ymax / constants.RESIZE_FACTOR
 
     abs_xmin = iso_xmin + kun_xmin
     abs_ymin = iso_ymin + kun_ymin
@@ -195,6 +195,11 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
                     keystroke_candidates, noises = cca.run_with_stats(isolation_window, font_size)
                     # print("Candidates for coordinate (x,y): ", xmin, ymin)
                     for c in keystroke_candidates:
+                        # perform watershed if c type is tallest region (to try to split character that interconnected with the cursor)
+                        if c['type'] == constants.TALLEST_TYPE:
+                            print_info("Performing Watershed for Possible Interconnected Characters")
+                            perform_watershed(c['mask'])
+
                         kunit_bbox_x = c['coord']['x']
                         kunit_bbox_y = c['coord']['y']
                         kunit_bbox_w = c['shape']['w']
@@ -239,7 +244,7 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
     # frame_to_video(frames, 'output.avi', image_w, image_h)
 
     # store camstroke data for further processing
-    utils.save_camstroke(camstroke, "results/experiments/test_2/camstroke_forgery_attack.pkl")
+    utils.save_camstroke(camstroke, "results/experiments/test_3/camstroke_forgery_attack.pkl")
 
     # pass data to hmm learning
     # keystroke_points = camstroke.keystroke_points

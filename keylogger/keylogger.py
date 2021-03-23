@@ -3,8 +3,6 @@ import pandas as pd
 import time
 import uuid
 import csv
-from helpers import keylog as keylogutils
-from helpers.utils import epoch_to_millis
 
 
 """
@@ -18,8 +16,7 @@ According to *, best features for keystroke dynamic is DDT and DUT
 *: Farhi, N., Nissim, N., & Elovici, Y. (2019). Malboard: A novel user keystroke impersonation attack and trusted detection framework based on side-channel analysis. Computers & Security, 85, 240-269.
 """
 
-DATA_PATH = "../results/keylog_data.csv"
-
+DATA_PATH = "../results/experiments/test_3/keylog_data.csv"
 
 def read_data(data_path):
     result = list()
@@ -132,6 +129,8 @@ if __name__ == '__main__':
     currentdir = os.path.dirname(os.path.realpath(__file__))
     parentdir = os.path.dirname(currentdir)
     sys.path.append(parentdir)
+    from helpers import keylog as keylogutils
+    from helpers.utils import epoch_to_millis
     
     # run()
     keystroke_data = read_data(DATA_PATH)
