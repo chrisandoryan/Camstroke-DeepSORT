@@ -22,11 +22,11 @@ WEIGHT_PATH = "./yolo_deepsort/checkpoints/camstroke-yolov4-416"
 DETECTION_SENSITIVITY = 2  # in pixels, alternatively we can use the font size
 
 # image helper constants
-RESIZE_FACTOR = 5
+RESIZE_FACTOR = 10
 
 # CCA constants
 # CCA using 4 or 8 connectivity
-CONNECTIVITY = 8
+CONNECTIVITY = 4
 
 CANDIDATE_TYPE = "CANDIDATE"
 RIGHTMOST_TYPE = "RIGHTMOST"

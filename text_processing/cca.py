@@ -151,6 +151,7 @@ def the_algorithm(im, output):
         
         # if tallest region width is bigger than certain threshold, there might be a character overlapped with the cursor.
         # so we marked it as a candidates, otherwise it's a noise.
+        print("Tallest Region W", tallest_region['shape']['w'])
         if tallest_region['shape']['w'] >= constants.OVERLAPPING_WIDTH_THRESHOLD:
             candidates.append(tallest_region)
         else:

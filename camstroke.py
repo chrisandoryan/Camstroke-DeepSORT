@@ -16,7 +16,7 @@ import helpers.utils as utils
 from helpers.font import calc_font_width, calc_fontsize, get_cursor_height
 from helpers.screen import px_to_inch, calc_ppi
 from helpers.video import get_video_size, frame_to_video, get_fps
-from helpers.image import perform_watershed
+from helpers.image import perform_watershed, solve_overlapping
 
 from dataclass.camstroke_data import Camstroke
 from dataclass.keystroke import KUnit, KeystrokePoint
@@ -197,8 +197,9 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
                     for c in keystroke_candidates:
                         # perform watershed if c type is tallest region (to try to split character that interconnected with the cursor)
                         if c['type'] == constants.TALLEST_TYPE:
-                            print_info("Performing Watershed for Possible Interconnected Characters")
-                            perform_watershed(c['mask'])
+                            result = solve_overlapping(c['mask'])
+                            # utils.print_info("Performing Watershed for possibly interconnected characters")
+                            # perform_watershed(c['mask'])
 
                         kunit_bbox_x = c['coord']['x']
                         kunit_bbox_y = c['coord']['y']

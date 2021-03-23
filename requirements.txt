@@ -8,3 +8,7 @@ matplotlib
 pillow
 pohmm
 numpy==1.18.5
+opencv-contrib-python
+skan
+scikit-image
+numba

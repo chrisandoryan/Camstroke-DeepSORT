@@ -11,6 +11,8 @@ from skimage.segmentation import watershed
 from scipy import ndimage
 import imutils
 from helpers import constants
+from skimage import io, morphology
+from skan import skeleton_to_csgraph
 
 def display(im, title="An Image"):
     cv2.imshow(title, im)
@@ -43,6 +45,11 @@ def auto_canny(im, sigma=0.33):
 	# return the edged image
 	return edged
 
+def skeletonization(im):
+    # im = morphology.skeletonize(im)
+    im = cv2.ximgproc.thinning(im)
+    return im
+
 def perform_watershed(im):
     thresh = cv2.threshold(im, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
     # compute the exact Euclidean distance from every binary
@@ -61,7 +68,6 @@ def perform_watershed(im):
         # if the label is zero, we are examining the 'background'
         # so simply ignore it
         if label == 0:
-            print("BG")
             continue
         # otherwise, allocate memory for the label region and draw
         # it on the mask
@@ -82,13 +88,27 @@ def perform_watershed(im):
     display(im)
     return im
 
+def find_branch_points(skeletion_im):
+    pixel_graph, coordinates, degrees = skeleton_to_csgraph(skeletion_im)
+    # consider all values larger than two as intersection
+    intersection_matrix = degrees > 2
+    return intersection_matrix
+
+# this function is necessary to separate a character that intersect/overlap with the cursor (or another character), so that the captured timings can be more effective.
+# https://stackoverflow.com/questions/14211413/segmentation-for-connected-characters
+def solve_overlapping(overlap_im):
+    im = skeletonization(overlap_im)
+    display(im)
+    intersection = find_branch_points(im)
+    print(intersection)
+
 def enhance_image(im):
     # resize image
-    im = cv2.resize(im, None, fx=constants.RESIZE_FACTOR * 2,
-                    fy=constants.RESIZE_FACTOR * 2, interpolation=cv2.INTER_CUBIC)
+    im = cv2.resize(im, None, fx=constants.RESIZE_FACTOR,
+                    fy=constants.RESIZE_FACTOR, interpolation=cv2.INTER_CUBIC)
 
     # pyramid mean shift filtering
-    im = cv2.pyrMeanShiftFiltering(im, 21, 51)
+    # im = cv2.pyrMeanShiftFiltering(im, 21, 51)
 
     # display(im)
 
@@ -110,7 +130,7 @@ def enhance_image(im):
     # applying dilation and erosion
     kernel = np.ones((1, 1), np.uint8)
     im = cv2.erode(im, kernel, iterations=4)
-    # im = cv2.dilate(im, kernel, iterations=1)
+    im = cv2.dilate(im, kernel, iterations=1)
     im = cv2.morphologyEx(im, cv2.MORPH_OPEN, kernel)
 
     # applying adaptive blur
