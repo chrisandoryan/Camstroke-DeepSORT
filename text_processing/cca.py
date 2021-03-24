@@ -65,9 +65,11 @@ def create_region_object(i, stats, centroids, empty=False):
         }
         return region_data
 
+# sort list of candidates based on x coordinates (to find rightmost region)
 def sort_by_x_position(candidates):
     return sorted(candidates, key=lambda k: k['coord']['x']) 
 
+# merge vertically aligned regions (to resolve i and j detection limitation)
 def detect_stacked_regions(candidates):
     prev = candidates[0]
     prev_xmin = -1000

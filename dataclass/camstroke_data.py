@@ -1,6 +1,7 @@
 import helpers.utils as utils
 from helpers.utils import print_info
 from helpers import constants
+from helpers.font import calc_font_height, calc_font_width
 
 from dataclass.keystroke import KeystrokePoint
 
@@ -29,10 +30,15 @@ class Camstroke(object):
         return keystroke_data
 
     def _get_existing_kpoint(self, kunit):
+        # TODO: find way to accurately compute similarity based on coordinate
+        avg_font = self.get_avg_fontsize()
+        font_height = calc_font_height(avg_font)
+        # font_width = calc_font_width(avg_font)
+        print_info("KeystrokePoint Sensitivity (x, y): {}, {}".format(constants.DETECTION_SENSITIVITY, font_height))
         for kp in self.keystroke_points:
             kpoint_xmin, kpoint_ymin, _, _ = kp.last_detection_coordinates
             x_similar = abs(kpoint_xmin - kunit.xmin) <= constants.DETECTION_SENSITIVITY
-            y_similar = abs(kpoint_ymin - kunit.ymin) <= constants.DETECTION_SENSITIVITY
+            y_similar = abs(kpoint_ymin - kunit.ymin) <= font_height
             if all((x_similar, y_similar)):
                 return kp
         return None

@@ -61,6 +61,7 @@ class KeystrokePoint(object):
             return None, None
 
     def add_keystroke_unit(self, frame_id, last_coordinates, kunit):
+        print_info("Last coordinates: {}".format(last_coordinates))
         if kunit.kunit_type == constants.CANDIDATE_TYPE:
             if len(self.kunits) > 0:
                 print_info("KUnit is a repeated candidate, skipping...")

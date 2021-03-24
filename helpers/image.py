@@ -180,7 +180,7 @@ def solve_overlapping(overlap_im):
 
     # returned branch point coordinates will always be the rightmost coordinates
     bp_coord = find_branch_point_coordinates(skeleton_im)
-    print(bp_coord)
+    # print(bp_coord)
 
     if all(bp_coord):
         # create a mask until a few pixels before the intersection (bp) coordinate, as tall as the image

@@ -18,11 +18,11 @@ INVALID_KEYSTROKE = ["|", "="]
 # path to weight for cursor tracker
 WEIGHT_PATH = "./yolo_deepsort/checkpoints/camstroke-yolov4-416"
 
-# if the next detected keystroke is +- around the last detected keystroke's x coordinate, the detection result is considered to be for the same detection attempt as the previous
-DETECTION_SENSITIVITY = 2  # in pixels, alternatively we can use the font size
-
 # image helper constants
 RESIZE_FACTOR = 10
+
+# if the next detected keystroke is +- around the last detected keystroke's x coordinate, the detection result is considered to be for the same detection attempt as the previous
+DETECTION_SENSITIVITY = 2 # in pixels, alternatively we can use the font size
 
 # CCA constants
 # CCA using 4 or 8 connectivity
