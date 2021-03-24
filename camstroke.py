@@ -195,11 +195,11 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
                     keystroke_candidates, noises = cca.run_with_stats(isolation_window, font_size)
                     # print("Candidates for coordinate (x,y): ", xmin, ymin)
                     for c in keystroke_candidates:
-                        # perform watershed if c type is tallest region (to try to split character that interconnected with the cursor)
+                        # perform intersection solving if c type is tallest region (to try to split character that interconnected with the cursor)
                         if c['type'] == constants.TALLEST_TYPE:
-                            result = solve_overlapping(c['mask'])
-                            # utils.print_info("Performing Watershed for possibly interconnected characters")
-                            # perform_watershed(c['mask'])
+                            kunit_image = solve_overlapping(c['mask'])
+                        else:
+                            kunit_image = c['mask']
 
                         kunit_bbox_x = c['coord']['x']
                         kunit_bbox_y = c['coord']['y']
@@ -212,8 +212,8 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
                         # convert kunit coordinate relative to the video frame, instead of relative to the isolation bbox frame
                         kunit_absolute_coordinates = to_absolute_coordinates(isolation_coordinates, kunit_coordinates)
 
-                        kunit = KUnit(frame_id, c['mask'], c['type'], kunit_absolute_coordinates, kunit_shape)
-                        _, ocr_result = OCR.run_vanilla(c['mask'])
+                        kunit = KUnit(frame_id, kunit_image, c['type'], kunit_absolute_coordinates, kunit_shape)
+                        _, ocr_result = OCR.run_vanilla(kunit_image)
 
                         kunit.set_ocr_result(ocr_result)
 
