@@ -124,7 +124,7 @@ def the_algorithm(im, output):
             bbox_h = stats[i, cv2.CC_STAT_HEIGHT]
             area = stats[i, cv2.CC_STAT_AREA]
 
-            # if area is smaller than certain threshold, skip.
+            # TODO: if area is smaller than certain threshold, skip.
             # if area < 
 
             # get the tallest region / cursor region (assumption 3.1)
@@ -151,14 +151,19 @@ def the_algorithm(im, output):
         
         # if tallest region width is bigger than certain threshold, there might be a character overlapped with the cursor.
         # so we marked it as a candidates, otherwise it's a noise.
-        print("Tallest Region W", tallest_region['shape']['w'])
-        if tallest_region['shape']['w'] >= constants.OVERLAPPING_WIDTH_THRESHOLD:
-            candidates.append(tallest_region)
-        else:
-            noises.append(tallest_region)
+        print("Tallest Region Width", tallest_region['shape']['w'])
+        # also, tallest region must be updated (not default value) to be added to list of candidates
+        if tallest_region['type'] != '':
+            if tallest_region['shape']['w'] >= constants.OVERLAPPING_WIDTH_THRESHOLD:
+                candidates.append(tallest_region)
+            else:
+                noises.append(tallest_region)
 
-        candidates.append(rightmost_region)
-        candidates = unique_array_dict(candidates, "index")
+        # if rightmost region is updated (not default value), append it to list of candidates
+        if rightmost_region['type'] != '':
+            candidates.append(rightmost_region)
+
+        candidates = unique_array_dict(candidates, key="index")
 
         # sort based on x coordinate
         candidates = sort_by_x_position(candidates)
@@ -172,7 +177,7 @@ def the_algorithm(im, output):
 
         # TODO: noises hasn't been processed with stacked regions detection
 
-        noises = unique_array_dict(noises, "index")
+        noises = unique_array_dict(noises, key="index")
         
         for c in candidates:
             c['mask'] = (labels == c['index']).astype("uint8") * 255
@@ -180,6 +185,7 @@ def the_algorithm(im, output):
         for n in noises:
             n['mask'] = (labels == n['index']).astype("uint8") * 255
 
+    # print(candidates)
     return candidates, noises
 
 

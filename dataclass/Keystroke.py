@@ -68,8 +68,8 @@ class KeystrokePoint(object):
             else:
                 print_info("KUnit is an unrecorded candidate; Updating lastseen data...")
                 self.k_lastseen = frame_id
-        elif kunit.kunit_type == constants.RIGHTMOST_TYPE:
-            print_info("KUnit is a rightmost candidate; Updating lastseen data...")
+        elif kunit.kunit_type == constants.RIGHTMOST_TYPE or kunit.kunit_type == constants.TALLEST_TYPE:
+            print_info("KUnit is a rightmost/tallest candidate; Updating lastseen data...")
             self.k_lastseen = frame_id
         self.last_coordinates = last_coordinates
         self.kunits.append(kunit)

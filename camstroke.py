@@ -198,6 +198,11 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
                         # perform intersection solving if c type is tallest region (to try to split character that interconnected with the cursor)
                         if c['type'] == constants.TALLEST_TYPE:
                             kunit_image = solve_overlapping(c['mask'])
+                            # print(kunit_image)
+                            # in case overlapping failed to be handled/fixed
+                            if kunit_image is None:
+                                utils.print_info("Overlapping Handler failed. Skipping.")
+                                continue
                         else:
                             kunit_image = c['mask']
 
@@ -227,7 +232,7 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
                         kpoint = camstroke.store_kunit(frame_id, kunit)
                         timing_data = kpoint.get_timing_data(fps)
                         print("Timing Data: ", timing_data)
-                        # input()
+                        input()
                         
                 # original/unprocessed image
                 # keystroke_image = isolation_window.to_image()
@@ -245,7 +250,7 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
     # frame_to_video(frames, 'output.avi', image_w, image_h)
 
     # store camstroke data for further processing
-    utils.save_camstroke(camstroke, "results/experiments/test_3/camstroke_forgery_attack.pkl")
+    utils.save_camstroke(camstroke, "results/experiments/test_4/camstroke_forgery_attack.pkl")
 
     # pass data to hmm learning
     # keystroke_points = camstroke.keystroke_points

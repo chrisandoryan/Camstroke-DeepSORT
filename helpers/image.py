@@ -113,6 +113,8 @@ def find_branch_points(skeleton_im):
 
 def find_branch_point_coordinates(skeleton_im):
     w, h = skeleton_im.shape
+    # print("W, H", w, h)
+
     # Find row and column locations that are non-zero
     (rows,cols) = np.nonzero(skeleton_im)
 
@@ -121,11 +123,12 @@ def find_branch_point_coordinates(skeleton_im):
 
     # For each non-zero pixels (non-zero means WHITE)
     for (r,c) in zip(rows,cols):
+        # print(r, c)
         # Prevent neighbor checking beyond the border
         c_left = c - 1 if c != 0 else c
-        c_right = c + 1 if c != w - 1 else c
+        c_right = c + 1 if c != h - 1 else c
         r_top = r - 1 if r != 0 else r
-        r_bottom = r + 1 if r != h - 1 else r
+        r_bottom = r + 1 if r != w - 1 else r
 
         # Extract an 8-connected neighbourhood
         (col_neigh, row_neigh) = np.meshgrid(np.array([c_left, c, c_right]), np.array([r_top, r,r_bottom]))
@@ -150,7 +153,7 @@ def find_branch_point_coordinates(skeleton_im):
         rightmost_coord = max(skel_coords, key=itemgetter(0))
         return rightmost_coord
     
-    return None
+    return (None, None)
 
 # this function is necessary to separate a character that intersect/overlap with the cursor (or another character), so that the captured timings can be more effective.
 # https://stackoverflow.com/questions/14211413/segmentation-for-connected-characters
@@ -179,36 +182,38 @@ def solve_overlapping(overlap_im):
     bp_coord = find_branch_point_coordinates(skeleton_im)
     print(bp_coord)
 
-    # create a mask until a few pixels before the intersection (bp) coordinate, as tall as the image
-    bp_x, bp_y = bp_coord
-    x_start, y_start = (0, 0)
-    x_end, y_end = (bp_x - 5, im_h)
+    if all(bp_coord):
+        # create a mask until a few pixels before the intersection (bp) coordinate, as tall as the image
+        bp_x, bp_y = bp_coord
+        x_start, y_start = (0, 0)
+        x_end, y_end = (bp_x - 5, im_h)
 
-    mask = np.zeros(overlap_im.shape[:2], dtype="uint8")
-    cv2.rectangle(mask, (x_start, y_start), (x_end, y_end), 255, -1)
-    # display(mask, "The Mask")
+        mask = np.zeros(overlap_im.shape[:2], dtype="uint8")
+        cv2.rectangle(mask, (x_start, y_start), (x_end, y_end), 255, -1)
+        # display(mask, "The Mask")
 
-    # erase the cursor object from the image based on intersection coordinate
-    clean_im = cv2.bitwise_and(skeleton_im, skeleton_im, mask=mask)
-    clean_im_also = cv2.bitwise_and(overlap_im, overlap_im, mask=mask)
+        # erase the cursor object from the image based on intersection coordinate
+        clean_im = cv2.bitwise_and(skeleton_im, skeleton_im, mask=mask)
+        # clean_im_also = cv2.bitwise_and(overlap_im, overlap_im, mask=mask)
 
-    # to display the coordinate
-    # color = (255, 0, 0)
-    # radius = 3
-    # thickness = 2
-    # im = cv2.circle(im, bp_coord, radius, color, thickness)
-    # display(im, "Junction Coordinate")
+        # to display the coordinate
+        # color = (255, 0, 0)
+        # radius = 3
+        # thickness = 2
+        # im = cv2.circle(im, bp_coord, radius, color, thickness)
+        # display(im, "Junction Coordinate")
 
-    # dilate the frame (de-skeletonize)
-    kernel = np.ones((5, 5), np.uint8)
-    final_im = cv2.dilate(clean_im, kernel, iterations=3)
+        # dilate the frame (de-skeletonize)
+        kernel = np.ones((5, 5), np.uint8)
+        final_im = cv2.dilate(clean_im, kernel, iterations=3)
 
-    # display(final_im, "Final Result")
+        # display(final_im, "Final Result")
 
-    # can't be used because the crop is unoptimal (some of the cursor region still appear)
-    # display(clean_im_also, "Final Result 2")
-    return final_im
-    
+        # can't be used because the crop is unoptimal (some of the cursor region still appear)
+        # display(clean_im_also, "Final Result 2")
+        return final_im
+
+    return None    
 
 def enhance_image(im):
     # resize image

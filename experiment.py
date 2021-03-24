@@ -12,7 +12,7 @@ if __name__ == "__main__":
     fps = get_fps(video_path)
 
     camstroke = run_with_yolo(video_path, font_type, screen_size)
-    camstroke = load_camstroke("results/experiments/test_3/camstroke_forgery_attack.pkl")
+    camstroke = load_camstroke("results/experiments/test_4/camstroke_forgery_attack.pkl")
 
     plotDDT([x.get_timing_data(fps) for x in camstroke.keystroke_points])
     plotDUT([x.get_timing_data(fps) for x in camstroke.keystroke_points])
