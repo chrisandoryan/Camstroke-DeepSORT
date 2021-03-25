@@ -13,15 +13,17 @@ import imutils
 from helpers import constants
 from helpers.utils import print_full
 from skimage import io, morphology
-from skan import skeleton_to_csgraph
-from skan import Skeleton, summarize
 import matplotlib.pyplot as plt
 from skan import draw
 from operator import itemgetter
 
-def display(im, title="An Image"):
+def display(im, title="An Image", wait=True):
     cv2.imshow(title, im)
-    cv2.waitKey(0)
+    if wait:
+        cv2.waitKey(0)
+
+def save_image(im, path):
+    cv2.imwrite(path, im)
 
 def convexity_defects(im):
     ret, thresh = cv2.threshold(im, 127, 255, 0)
@@ -51,7 +53,6 @@ def auto_canny(im, sigma=0.33):
 	return edged
 
 def skeletonization(im):
-    # im = morphology.skeletonize(im)
     im = cv2.ximgproc.thinning(im)
     return im
 
@@ -90,26 +91,6 @@ def perform_watershed(im):
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
     
     return im
-
-def find_branch_points(skeleton_im):
-    """
-    Using Skan library
-    Branch Type: 
-    1: endpoint-to-endpoint (isolated branch)
-    2: junction-to-endpoint
-    3: junction-to-junction
-    4: isolated cycle
-    - junctions (where three or more skeleton branches meet)
-    - endpoints (where a skeleton ends)
-    - paths (pixels on the inside of a skeleton branch
-    """
-    branch_data = summarize(Skeleton(skeleton_im))
-    # to draw skeleton network
-    # pixel_graph, coordinates, degrees = skeleton_to_csgraph(skeleton_im)
-    # fig, axes = plt.subplots(1, 1)
-    # axes = draw.overlay_skeleton_networkx(pixel_graph, coordinates, axis=axes)
-    # plt.show()
-    return branch_data
 
 def find_branch_point_coordinates(skeleton_im):
     w, h = skeleton_im.shape
@@ -164,20 +145,6 @@ def solve_overlapping(overlap_im):
     skeleton_im = skeletonization(overlap_im)
     # display(skeleton_im)
 
-    # find branch point
-    # bp = find_branch_points(im)
-    # print_full(bp)
-
-    # for i, b in bp.iterrows():
-    #     x0 = int(b['image-coord-src-0'])
-    #     y0 = int(b['image-coord-dst-0'])
-    #     x1 = int(b['image-coord-src-1'])
-    #     y1 = int(b['image-coord-dst-1'])
-    #     print(x0, y0)
-    #     print(x1, y1)
-        
-    # display(im)
-
     # returned branch point coordinates will always be the rightmost coordinates
     bp_coord = find_branch_point_coordinates(skeleton_im)
     # print(bp_coord)
@@ -186,7 +153,7 @@ def solve_overlapping(overlap_im):
         # create a mask until a few pixels before the intersection (bp) coordinate, as tall as the image
         bp_x, bp_y = bp_coord
         x_start, y_start = (0, 0)
-        x_end, y_end = (bp_x - 5, im_h)
+        x_end, y_end = (bp_x - constants.INTERSECTION_PADDING, im_h)
 
         mask = np.zeros(overlap_im.shape[:2], dtype="uint8")
         cv2.rectangle(mask, (x_start, y_start), (x_end, y_end), 255, -1)
@@ -197,20 +164,22 @@ def solve_overlapping(overlap_im):
         # clean_im_also = cv2.bitwise_and(overlap_im, overlap_im, mask=mask)
 
         # to display the coordinate
-        # color = (255, 0, 0)
-        # radius = 3
-        # thickness = 2
-        # im = cv2.circle(im, bp_coord, radius, color, thickness)
+        color = (255, 0, 0)
+        radius = 3
+        thickness = 2
+        cut_im = cv2.circle(skeleton_im, bp_coord, radius, color, thickness)
         # display(im, "Junction Coordinate")
 
         # dilate the frame (de-skeletonize)
-        kernel = np.ones((5, 5), np.uint8)
-        final_im = cv2.dilate(clean_im, kernel, iterations=3)
+        kernel = np.ones((3, 3), np.uint8)
+        dilated_im = cv2.dilate(clean_im, kernel, iterations=8)
 
+        # perform more image enhancement
+        final_im = cv2.morphologyEx(dilated_im, cv2.MORPH_OPEN, kernel)
+        final_im = cv2.threshold(cv2.medianBlur(dilated_im, 3), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+        final_im = cv2.morphologyEx(dilated_im, cv2.MORPH_CLOSE, kernel)
         # display(final_im, "Final Result")
 
-        # can't be used because the crop is unoptimal (some of the cursor region still appear)
-        # display(clean_im_also, "Final Result 2")
         return final_im
 
     return None    
@@ -243,7 +212,7 @@ def enhance_image(im):
     # applying dilation and erosion
     kernel = np.ones((1, 1), np.uint8)
     im = cv2.erode(im, kernel, iterations=4)
-    im = cv2.dilate(im, kernel, iterations=1)
+    # im = cv2.dilate(im, kernel, iterations=1)
     im = cv2.morphologyEx(im, cv2.MORPH_OPEN, kernel)
 
     # applying adaptive blur
@@ -251,9 +220,9 @@ def enhance_image(im):
     # im = cv2.adaptiveThreshold(cv2.medianBlur(im, 3), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
 
     # applying normal blur
-    # im = cv2.threshold(cv2.medianBlur(im, 3), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+    im = cv2.threshold(cv2.medianBlur(im, 3), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
     # im = cv2.threshold(cv2.GaussianBlur(im, (1, 1), 0), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-    im = cv2.threshold(cv2.bilateralFilter(im, 5, 75, 75), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+    # im = cv2.threshold(cv2.bilateralFilter(im, 5, 75, 75), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
 
     return im
 

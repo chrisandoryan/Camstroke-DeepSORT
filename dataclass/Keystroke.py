@@ -83,8 +83,10 @@ class KeystrokePoint(object):
         """
         keypress = self.k_appear
         keyrelease = self.k_lastseen
-        keyhold = frame_to_ms(fps, (self.k_lastseen - self.k_appear) / 2)
-        keydelay = frame_to_ms(fps, (self.k_lastseen - self.k_appear))
+        # +1 because even though the character appear and disappear at the same frame, the timing must be at least 1 frame. TODO: verify this assumption.
+        interkeystroke_timing = (self.k_lastseen - self.k_appear) + 1
+        keyhold = frame_to_ms(fps, interkeystroke_timing / 2)
+        keydelay = frame_to_ms(fps, interkeystroke_timing)
 
         keytext, confidence = self.get_consensus_keytext()
 

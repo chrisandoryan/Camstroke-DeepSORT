@@ -16,7 +16,7 @@ import helpers.utils as utils
 from helpers.font import calc_font_width, calc_fontsize, get_cursor_height
 from helpers.screen import px_to_inch, calc_ppi
 from helpers.video import get_video_size, frame_to_video, get_fps
-from helpers.image import perform_watershed, solve_overlapping, display
+from helpers.image import perform_watershed, solve_overlapping, display, save_image
 
 from dataclass.camstroke_data import Camstroke
 from dataclass.keystroke import KUnit, KeystrokePoint
@@ -232,11 +232,12 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
                         kpoint = camstroke.store_kunit(frame_id, kunit)
                         timing_data = kpoint.get_timing_data(fps)
 
-                        display(kunit_image)
+                        # display(kunit_image, "Final Result")
+                        save_image(kunit_image, "results/keystroke_images/{}_{}.png".format(frame_id, timing_data['keytext']))
                         print("Timing Data: ", timing_data)
 
                         # input()
-                        
+                    
                 # original/unprocessed image
                 # keystroke_image = isolation_window.to_image()
 

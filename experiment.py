@@ -18,3 +18,4 @@ if __name__ == "__main__":
     plotDUT([x.get_timing_data(fps) for x in camstroke.keystroke_points])
     dataset = preprocess(fps, camstroke.keystroke_points)
     print_full(dataset)
+    dataset.to_csv("results/experiments/test_4/camstroke_extraction_result.csv")

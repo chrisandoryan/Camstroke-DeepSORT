@@ -43,3 +43,5 @@ SCREEN_SIZE = 13.3 # in inch
 # font types
 PROPORTIONAL_FONT = "PROPORTIONAL"
 FIXEDWIDTH_FONT = "FIXED-WIDTH"
+
+INTERSECTION_PADDING = 2 # the intersection will be splitted until 2px before the branch point coordinate
