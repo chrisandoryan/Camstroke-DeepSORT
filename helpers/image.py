@@ -136,6 +136,12 @@ def find_branch_point_coordinates(skeleton_im):
     
     return (None, None)
 
+# https://stackoverflow.com/questions/53481596/python-image-finding-largest-branch-from-image-skeleton
+def prune_branches(skeleton_im):
+    kernel = np.ones((2, 1), np.uint8)
+    pruned_im = cv2.erode(skeleton_im, kernel, iterations=1)
+    return pruned_im
+
 # this function is necessary to separate a character that intersect/overlap with the cursor (or another character), so that the captured timings can be more effective.
 # https://stackoverflow.com/questions/14211413/segmentation-for-connected-characters
 def solve_overlapping(overlap_im):
@@ -163,16 +169,20 @@ def solve_overlapping(overlap_im):
         clean_im = cv2.bitwise_and(skeleton_im, skeleton_im, mask=mask)
         # clean_im_also = cv2.bitwise_and(overlap_im, overlap_im, mask=mask)
 
-        # to display the coordinate
         color = (255, 0, 0)
         radius = 3
         thickness = 2
         cut_im = cv2.circle(skeleton_im, bp_coord, radius, color, thickness)
+        # display the cut coordinate
         # display(im, "Junction Coordinate")
+
+        # TODO: prune small branches from the skeleton
+        # clean_im = prune_branches(clean_im)
+        # display(clean_im, "Test")
 
         # dilate the frame (de-skeletonize)
         kernel = np.ones((3, 3), np.uint8)
-        dilated_im = cv2.dilate(clean_im, kernel, iterations=8)
+        dilated_im = cv2.dilate(clean_im, kernel, iterations=5)
 
         # perform more image enhancement
         final_im = cv2.morphologyEx(dilated_im, cv2.MORPH_OPEN, kernel)

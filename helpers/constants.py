@@ -13,7 +13,7 @@ FONT_SIZE_CONSENSUS = 100
 OCR_CONF_THRESHOLD = 10
 
 # list of insignificant/invalid keystrokes that needs to be ignored
-INVALID_KEYSTROKE = ["|", "="]
+INVALID_KEYSTROKE = [] #["|", "="]
 
 # path to weight for cursor tracker
 WEIGHT_PATH = "./yolo_deepsort/checkpoints/camstroke-yolov4-416"
