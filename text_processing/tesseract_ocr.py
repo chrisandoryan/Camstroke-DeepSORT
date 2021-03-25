@@ -9,7 +9,7 @@ def run_vanilla(im):
     im = Image.fromarray(im)
     im = ImageOps.invert(im)
 
-    return im, pytesseract.image_to_data(im, output_type=Output.DICT, config='--psm 10')
+    return im, pytesseract.image_to_data(im, output_type=Output.DICT, config='--psm 10 --oem 3')
 
 def run_advanced(keystroke, enhance=True, pad=True):
     im = keystroke.kisolation_frame
