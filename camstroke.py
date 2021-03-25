@@ -195,14 +195,16 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
                     keystroke_candidates, noises = cca.run_with_stats(isolation_window, font_size)
                     # print("Candidates for coordinate (x,y): ", xmin, ymin)
                     for c in keystroke_candidates:
+                        separation_image = None
                         # perform intersection solving if c type is tallest region (to try to split character that interconnected with the cursor)
                         if c['type'] == constants.TALLEST_TYPE:
-                            kunit_image = solve_overlapping(c['mask'])
+                            separated = solve_overlapping(c)
                             # print(kunit_image)
                             # in case overlapping failed to be handled/fixed
-                            if kunit_image is None:
+                            if separated is None:
                                 utils.print_info("Overlapping Handler failed. Skipping.")
                                 continue
+                            kunit_image, separation_image = separated
                         else:
                             kunit_image = c['mask']
 
@@ -218,7 +220,7 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
                         kunit_absolute_coordinates = to_absolute_coordinates(isolation_coordinates, kunit_coordinates)
 
                         kunit = KUnit(frame_id, kunit_image, c['type'], kunit_absolute_coordinates, kunit_shape)
-                        _, ocr_result = OCR.run_vanilla(kunit_image)
+                        kunit_image, ocr_result = OCR.run_vanilla(kunit_image)
 
                         kunit.set_ocr_result(ocr_result)
 
@@ -233,10 +235,16 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
                         timing_data = kpoint.get_timing_data(fps)
 
                         # display(kunit_image, "Final Result")
-                        save_image(kunit_image, "results/keystroke_images/{}_{}.png".format(frame_id, timing_data['keytext']))
                         print("Timing Data: ", timing_data)
+                        save_image(kunit_image, "results/keystroke_images/{}_{}.png".format(frame_id, timing_data['keytext']))
+                        if separation_image is not None:
+                            save_image(separation_image, "results/keystroke_images/{}_{}_separation.png".format(frame_id, timing_data['keytext']))
+                            save_image(c['mask'], "results/keystroke_images/{}_{}_original.png".format(frame_id, timing_data['keytext']))
 
-                        # input()
+                            
+                        
+                        # if frame_id >= 950:
+                        #     input()
                     
                 # original/unprocessed image
                 # keystroke_image = isolation_window.to_image()

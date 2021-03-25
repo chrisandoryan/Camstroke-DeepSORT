@@ -10,6 +10,7 @@ from helpers.utils import print_info
 
 STACKED_REGION_THRESHOLD = 5 # if two regions is 5 pixels adrift between each other, consider those regions belongs to the same chacter (e.g i and j)
 
+# TODO: move this to image_processing module
 """
 Performs connected component labelling (CCA/CCL) for isolating characters from image.
 Algorithm v1.0:

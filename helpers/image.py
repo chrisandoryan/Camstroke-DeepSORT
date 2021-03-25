@@ -12,18 +12,23 @@ from scipy import ndimage
 import imutils
 from helpers import constants
 from helpers.utils import print_full
-from skimage import io, morphology
+from skimage import io, morphology, filters
 import matplotlib.pyplot as plt
 from skan import draw
 from operator import itemgetter
 
 def display(im, title="An Image", wait=True):
+    im = np.array(im)
     cv2.imshow(title, im)
     if wait:
         cv2.waitKey(0)
 
 def save_image(im, path):
+    im = np.array(im)
     cv2.imwrite(path, im)
+
+def distance(P1, P2):
+    return ((P1[0] - P2[0])**2 + (P1[1] - P2[1])**2) ** 0.5
 
 def convexity_defects(im):
     ret, thresh = cv2.threshold(im, 127, 255, 0)
@@ -53,8 +58,20 @@ def auto_canny(im, sigma=0.33):
 	return edged
 
 def skeletonization(im):
-    im = cv2.ximgproc.thinning(im)
-    return im
+    # skeletonization using skimage
+    # binary = np.array(im)
+    # binary[binary == 255] = 1
+    # sk_im = morphology.skeletonize(binary)
+    # sk_im = sk_im > filters.threshold_otsu(sk_im)
+    # sk_im = sk_im.astype('int8')
+    # sk_im = cv2.normalize(sk_im, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    # display(sk_im, "sk")
+
+    # skeletonization using opencv-contrib
+    cv_im = cv2.ximgproc.thinning(im)
+    # display(cv_im, "cv")
+
+    return cv_im
 
 def perform_watershed(im):
     thresh = cv2.threshold(im, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
@@ -126,7 +143,7 @@ def find_branch_point_coordinates(skeleton_im):
 
         # If the number of non-zero locations equals 2, add this to 
         # our list of co-ordinates
-        if np.sum(pix_neighbourhood) >= 4:
+        if np.sum(pix_neighbourhood) >= 5:
             skel_coords.append((c, r))
     
     # get the rightmost x coordinate
@@ -144,8 +161,21 @@ def prune_branches(skeleton_im):
 
 # this function is necessary to separate a character that intersect/overlap with the cursor (or another character), so that the captured timings can be more effective.
 # https://stackoverflow.com/questions/14211413/segmentation-for-connected-characters
-def solve_overlapping(overlap_im):
-    im_w, im_h = overlap_im.shape
+def solve_overlapping(candidate):
+    crop_padding = 8
+
+    overlap_im = candidate['mask']
+    bbox_x = candidate['coord']['x'] - crop_padding
+    bbox_y = candidate['coord']['y'] - crop_padding
+    # bbox_w = candidate['shape']['w']
+    # bbox_h = candidate['shape']['h']
+
+    # crop the image according to region's bounding box
+    overlap_im = overlap_im[bbox_y:,bbox_x:]
+    im_h, im_w = overlap_im.shape
+
+    # perform basic image enhancement
+    overlap_im = cv2.threshold(cv2.medianBlur(overlap_im, 3), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
 
     # skeletonize the frame
     skeleton_im = skeletonization(overlap_im)
@@ -172,8 +202,8 @@ def solve_overlapping(overlap_im):
         color = (255, 0, 0)
         radius = 3
         thickness = 2
-        cut_im = cv2.circle(skeleton_im, bp_coord, radius, color, thickness)
-        # display the cut coordinate
+        separation_im = cv2.circle(skeleton_im, bp_coord, radius, color, thickness)
+        # display the cutoff coordinate
         # display(im, "Junction Coordinate")
 
         # TODO: prune small branches from the skeleton
@@ -190,7 +220,7 @@ def solve_overlapping(overlap_im):
         final_im = cv2.morphologyEx(dilated_im, cv2.MORPH_CLOSE, kernel)
         # display(final_im, "Final Result")
 
-        return final_im
+        return final_im, separation_im
 
     return None    
 
@@ -223,7 +253,7 @@ def enhance_image(im):
     kernel = np.ones((1, 1), np.uint8)
     im = cv2.erode(im, kernel, iterations=4)
     # im = cv2.dilate(im, kernel, iterations=1)
-    im = cv2.morphologyEx(im, cv2.MORPH_OPEN, kernel)
+    # im = cv2.morphologyEx(im, cv2.MORPH_OPEN, kernel)
 
     # applying adaptive blur
     # im = cv2.adaptiveThreshold(cv2.bilateralFilter(im, 9, 75, 75), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2)
