@@ -29,14 +29,14 @@ if __name__ == "__main__":
     elif args.mode == "camstroke":
         video_path = "../Datasets/keystroke_dynamic_forgery_4.mp4"
         camstroke = run_with_yolo(video_path, font_type, screen_size)
-        save_camstroke(camstroke, save_path="%s/camstroke.pkl")
+        save_camstroke(camstroke, save_path="%s/camstroke.pkl" % EXPERIMENT_DIR)
         
         keypoints = camstroke.get_kpoints()
         dataset = preprocess(keypoints)
-        dataset.to_csv("%s/camstroke_kpoints.csv")
+        dataset.to_csv("%s/camstroke_kpoints.csv" % EXPERIMENT_DIR)
 
     elif args.mode == "analyze":
-        camstroke = load_camstroke(save_path="%s/camstroke.pkl")
+        camstroke = load_camstroke(save_path="%s/camstroke.pkl" % EXPERIMENT_DIR)
         keypoints = camstroke.get_kpoints()
 
         plotDDT(keypoints)

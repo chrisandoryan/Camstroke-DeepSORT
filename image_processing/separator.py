@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from skan import draw
 from operator import itemgetter
 
-from helpers.image import display, save_image
+from helpers.image import display, save_image, pad_image
 
 def convexity_defects(im):
     ret, thresh = cv2.threshold(im, 127, 255, 0)
@@ -127,20 +127,21 @@ def find_branch_point_coordinates(skeleton_im):
 
         # If the number of non-zero locations equals 2, add this to 
         # our list of co-ordinates
-        if np.sum(pix_neighbourhood) >= 5:
+        if np.sum(pix_neighbourhood) >= 4:
             skel_coords.append((c, r))
     
-    # get the rightmost x coordinate
+    # get the top n rightmost x coordinate
     if len(skel_coords) > 0:
         rightmost_coord = max(skel_coords, key=itemgetter(0))
+        # rightmost_coord = sorted(skel_coords, lambda tup: tup[0])
         return rightmost_coord
     
     return (None, None)
 
 # https://stackoverflow.com/questions/53481596/python-image-finding-largest-branch-from-image-skeleton
 def prune_branches(skeleton_im):
-    kernel = np.ones((2, 1), np.uint8)
-    pruned_im = cv2.erode(skeleton_im, kernel, iterations=1)
+    kernel = np.ones((5, 3), np.uint8)
+    pruned_im = cv2.erode(skeleton_im, kernel, iterations=3)
     return pruned_im
 
 # this function is necessary to separate a character that intersect/overlap with the cursor (or another character), so that the captured timings can be more effective.
@@ -156,6 +157,7 @@ def solve_overlapping(candidate):
 
     # crop the image according to region's bounding box
     overlap_im = overlap_im[bbox_y:,bbox_x:]
+    overlap_im = pad_image(overlap_im, crop_padding)
     im_h, im_w = overlap_im.shape
 
     # perform basic image enhancement
@@ -190,17 +192,17 @@ def solve_overlapping(candidate):
         # display the cutoff coordinate
         # display(im, "Junction Coordinate")
 
-        # TODO: prune small branches from the skeleton
-        # clean_im = prune_branches(clean_im)
-        # display(clean_im, "Test")
-
         # dilate the frame (de-skeletonize)
         kernel = np.ones((3, 3), np.uint8)
         dilated_im = cv2.dilate(clean_im, kernel, iterations=5)
 
+        # TODO: prune small branches from the skeleton
+        pruned_im = prune_branches(dilated_im)
+        # display(pruned_im, "Test")
+
         # perform more image enhancement
-        # final_im = cv2.GaussianBlur(dilated_im, (11, 11), 0)
-        final_im = cv2.morphologyEx(dilated_im, cv2.MORPH_OPEN, kernel)
+        final_im = cv2.GaussianBlur(pruned_im, (21, 21), 0)
+        final_im = cv2.morphologyEx(final_im, cv2.MORPH_OPEN, kernel)
         final_im = cv2.threshold(cv2.medianBlur(dilated_im, 3), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
         final_im = cv2.morphologyEx(dilated_im, cv2.MORPH_CLOSE, kernel)
         # display(final_im, "Final Result")

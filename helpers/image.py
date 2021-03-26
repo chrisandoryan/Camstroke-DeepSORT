@@ -23,21 +23,21 @@ def save_image(im, path):
     cv2.imwrite(path, im)
 
 def enhance_image(im):
+    # convert image to grayscale
+    im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+    # display(im, "Grayscale")
+    
     # resize image
     im = cv2.resize(im, None, fx=constants.RESIZE_FACTOR,
                     fy=constants.RESIZE_FACTOR, interpolation=cv2.INTER_CUBIC)
     # display(im, "Resizing")
 
-    # convert image to grayscale
-    im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-    # display(im, "Grayscale")
-    
     # canny edge detection
     # im = auto_canny(im)
 
     # display(im, "Before Thresholding")
     # automatic thresholding using Otsu's algorithm
-    thres, im = cv2.threshold(im, 215, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    thres, im = cv2.threshold(im, 225, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
     # display(im, "After Thresholding")
 
     # applying dilation and erosion
@@ -46,7 +46,7 @@ def enhance_image(im):
     im = cv2.dilate(im, kernel, iterations=1)
 
     kernel = np.ones((1, 3), np.uint8)
-    im = cv2.erode(im, kernel, iterations=6)
+    im = cv2.erode(im, kernel, iterations=5)
     im = cv2.dilate(im, kernel, iterations=1)
     # display(im, "Erode Dilate")
 
@@ -71,5 +71,7 @@ def enhance_image(im):
 
 
 def pad_image(image, target_size=100):
+    image = Image.fromarray(image)
     padded_image = ImageOps.expand(image, target_size, 'black')
+    padded_image = np.asarray(padded_image)
     return padded_image
