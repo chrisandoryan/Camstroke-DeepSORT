@@ -9,14 +9,14 @@ import itertools
 import argparse
 
 from text_processing import tesseract_ocr as OCR
-from text_processing import cca
+from image_processing import cca, separator
 
 from helpers import constants
 import helpers.utils as utils
 from helpers.font import calc_font_width, calc_fontsize, get_cursor_height
 from helpers.screen import px_to_inch, calc_ppi
 from helpers.video import get_video_size, frame_to_video, get_fps
-from helpers.image import perform_watershed, solve_overlapping, display, save_image
+from helpers.image import display, save_image
 
 from dataclass.camstroke_data import Camstroke
 from dataclass.keystroke import KUnit, KeystrokePoint
@@ -24,7 +24,6 @@ from dataclass.detected_cursor import DetectedCursor
 from dataclass.isolation_window import IsolationWindow
 
 from yolo_deepsort import cursor_tracker, cursor_detector
-import keystroke_prediction.viterbi_algorithm as viterbi
 
 #initialize color map
 cmap = plt.get_cmap('tab20b')
@@ -198,7 +197,7 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
                         separation_image = None
                         # perform intersection solving if c type is tallest region (to try to split character that interconnected with the cursor)
                         if c['type'] == constants.TALLEST_TYPE:
-                            separated = solve_overlapping(c)
+                            separated = separator.solve_overlapping(c)
                             # print(kunit_image)
                             # in case overlapping failed to be handled/fixed
                             if separated is None:
@@ -224,13 +223,6 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
 
                         kunit.set_ocr_result(ocr_result)
 
-                        # print("Frame ID: %d" % frame_id)
-                        # print("Isolation Coordinate: ", isolation_coordinates)
-                        # print("Font Size (%s): %d" % (font_type, font_size))
-                        # print("KUnit Absolute Coord: ", kunit_absolute_coordinates)
-                        # print("OCR Result: ", kunit.get_character())
-                        # print()
-
                         kpoint = camstroke.store_kunit(frame_id, kunit)
                         timing_data = kpoint.get_timing_data(fps)
 
@@ -241,8 +233,6 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
                             save_image(separation_image, "results/keystroke_images/{}_{}_separation.png".format(frame_id, timing_data['keytext']))
                             save_image(c['mask'], "results/keystroke_images/{}_{}_original.png".format(frame_id, timing_data['keytext']))
 
-                            
-                        
                         # if frame_id >= 950:
                         #     input()
                     
@@ -260,9 +250,6 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
     # save isolation bounding boxes to video format
     # frames = [f.kisolation_frame for f in camstroke.isolation_windows]
     # frame_to_video(frames, 'output.avi', image_w, image_h)
-
-    # store camstroke data for further processing
-    utils.save_camstroke(camstroke, "results/experiments/test_4/camstroke_forgery_attack.pkl")
 
     # pass data to hmm learning
     # keystroke_points = camstroke.keystroke_points
@@ -292,7 +279,6 @@ def _train_and_predict():
     camstroke = utils.load_camstroke("results/pickles/camstroke_cca.pkl")
     # pohmm_model, test_data = pohmm.train(camstroke.keystroke_points)
     # hmm_model = hmm.train(camstroke.keystroke_points)
-
     # prediction = viterbi.predict(pohmm_model, test_data)
 
 

@@ -132,7 +132,7 @@ if __name__ == '__main__':
     from helpers import keylog as keylogutils
     from helpers.utils import epoch_to_millis
     
-    # run()
+    run()
     keystroke_data = read_data(DATA_PATH)
     keylogutils.plotDUT(keystroke_data)
     keylogutils.plotDDT(keystroke_data)
