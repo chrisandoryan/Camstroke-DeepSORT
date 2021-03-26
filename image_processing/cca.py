@@ -3,7 +3,7 @@ from PIL import Image, ImageOps
 import numpy as np
 from helpers.font import calc_font_height, calc_font_width
 from helpers.image import enhance_image
-from helpers.utils import unique_array_dict
+from helpers.utils import keep_unique
 import time
 from helpers import constants
 from helpers.utils import print_info
@@ -166,7 +166,7 @@ def the_algorithm(im, output):
         if rightmost_region['type'] != '':
             candidates.append(rightmost_region)
 
-        candidates = unique_array_dict(candidates, key="index")
+        candidates = keep_unique(candidates, key="index")
 
         # sort based on x coordinate
         candidates = sort_by_x_position(candidates)
@@ -180,7 +180,7 @@ def the_algorithm(im, output):
 
         # TODO: noises hasn't been processed with stacked regions detection
 
-        noises = unique_array_dict(noises, key="index")
+        noises = keep_unique(noises, key="index")
         
         for c in candidates:
             c['mask'] = (labels == c['index']).astype("uint8") * 255

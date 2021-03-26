@@ -1,7 +1,7 @@
 import pandas as pd
 
-def preprocess(fps, kpoints):
-    data = [kp.get_timing_data(fps) for kp in kpoints]
+def preprocess(kpoints):
+    data = kpoints
     df = pd.DataFrame(data)
     df.set_index('id', inplace=True)
 

@@ -2,7 +2,7 @@ from pohmm import Pohmm, PohmmClassifier
 import pandas as pd
 import numpy as np
 from helpers.utils import print_full
-from helpers.hmm import preprocess, split_dataset
+from helpers.data import preprocess, split_dataset
 
 def keystroke_model():
     # """Generates a 2-state model with lognormal emissions and frequency smoothing"""

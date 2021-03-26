@@ -6,7 +6,7 @@ from helpers.font import calc_font_height, calc_font_width
 from dataclass.keystroke import KeystrokePoint
 
 class Camstroke(object):
-    def __init__(self):
+    def __init__(self, video, fps):
         self.last_cursor_position = (0, 0, 0, 0)  # xmin, ymin, xmax, ymax
         self.recorded_fontsizes = []
         # attributes of Camstroke data objects
@@ -15,11 +15,14 @@ class Camstroke(object):
         self.isolation_windows = []
         # object contains timing data for Hidden Markov Model learning
         self.keystroke_points = []
+        # store video information
+        self.video = video
+        self.fps = fps
 
     def get_avg_fontsize(self):
         return utils.calc_average(self.recorded_fontsizes)
 
-    def get_all_data(self):
+    def to_list(self):
         keystroke_data = []
         for cursor, keystroke, font_size in zip(self.detected_cursors, self.isolation_windows, self.recorded_fontsizes):
             merged = dict()
@@ -28,6 +31,9 @@ class Camstroke(object):
             merged['est_fontsize'] = font_size
             keystroke_data.append(merged)
         return keystroke_data
+
+    def get_kpoints(self):
+        return [x.get_timing_data(self.fps) for x in self.keystroke_points]
 
     def _get_existing_kpoint(self, kunit):
         # TODO: find way to accurately compute similarity based on coordinate

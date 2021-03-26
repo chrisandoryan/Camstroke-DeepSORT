@@ -3,7 +3,8 @@ import pandas as pd
 import time
 import uuid
 import csv
-
+from helpers import keylog as keylogutils
+from helpers.utils import epoch_to_millis, print_info
 
 """
 Metrics collected:
@@ -48,8 +49,9 @@ def write_result(output_path):
         print("I/O error")
 
 
-def get_related_keystroke(keystroke_data, char):
-    last = -1
+def get_related_keystroke(char):
+    global keystroke_data
+    last = None
     for i, k in enumerate(keystroke_data):
         if k['keytext'] == char:
             if k['keyrelease'] == 0:
@@ -61,11 +63,10 @@ def get_related_keystroke(keystroke_data, char):
 def store_keystroke(event_type, data):
     global keystroke_data
     char, stroke_time = data
+    char = str(char).replace("'", "")
     if event_type == "press":
-        # print("{} pressed at {}".format(char, stroke_time))
         if len(keystroke_data) > 0:
             last_data = keystroke_data[-1]
-            print("Last data", last_data)
             last_data.update({
                 'keydelay': abs(last_data['keypress'] - stroke_time)
             })
@@ -79,12 +80,15 @@ def store_keystroke(event_type, data):
         })
     elif event_type == "release":
         # print("{} released at {}".format(char, stroke_time))
-        data = keystroke_data[get_related_keystroke(keystroke_data, char)]
-        data.update({
-            'keyrelease': stroke_time,
-            'keyhold': abs(data['keypress'] - stroke_time),
-        })
-    # print(keystroke_data)
+        index = get_related_keystroke(char)
+        if index is not None:
+            data = keystroke_data[index]
+            data.update({
+                'keyrelease': stroke_time,
+                'keyhold': abs(data['keypress'] - stroke_time),
+            })
+        else:
+            raise ValueError
 
 
 def on_press(key):
@@ -103,36 +107,27 @@ def on_release(key):
     char = key
     store_keystroke("release", (char, stroke_time))
     if key == keyboard.Key.esc:
-        print("Stopping...")
+        print_info("Keylogger has been stopped")
         write_result(DATA_PATH)
         return False
 
 
-def run(asynchronous=False):
+def run(save_path, asynchronous=False):
+    global DATA_PATH
+    DATA_PATH = save_path
+
+    print_info("Keylogger running in %s mode" % ("Asynchronous" if asynchronous else "Synchronous"))
+    print_info("Press ESC to stop Keylogger")
+
     if asynchronous:
-        print("Running in asynchronous mode")
         listener = keyboard.Listener(
             on_press=on_press,
             on_release=on_release)
         listener.start()
     else:
-        print("Running in synchronous mode")
         with keyboard.Listener(
                 on_press=on_press,
                 on_release=on_release) as listener:
             listener.join()
-
-
-if __name__ == '__main__':
-    # to import helpers package directly
-    import os, sys
-    currentdir = os.path.dirname(os.path.realpath(__file__))
-    parentdir = os.path.dirname(currentdir)
-    sys.path.append(parentdir)
-    from helpers import keylog as keylogutils
-    from helpers.utils import epoch_to_millis
     
-    run()
-    keystroke_data = read_data(DATA_PATH)
-    keylogutils.plotDUT(keystroke_data)
-    keylogutils.plotDDT(keystroke_data)
+    return keystroke_data, DATA_PATH

@@ -18,7 +18,7 @@ from helpers.screen import px_to_inch, calc_ppi
 from helpers.video import get_video_size, frame_to_video, get_fps
 from helpers.image import display, save_image
 
-from dataclass.camstroke_data import Camstroke
+from dataclass.camstroke import Camstroke
 from dataclass.keystroke import KUnit, KeystrokePoint
 from dataclass.detected_cursor import DetectedCursor
 from dataclass.isolation_window import IsolationWindow
@@ -129,13 +129,13 @@ def map_cursor_movements(coords, last_coords, font_size):
 
     return
 
-def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=constants.SCREEN_SIZE):
-    camstroke = Camstroke()
-    consecutive_streak = 0
-
+def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=constants.DEFAULT_SCREEN_SIZE):
     vwidth, vheight = get_video_size(video_path)
     PPI = calc_ppi(vwidth, vheight, screen_size_inch=screen_size)
     fps = get_fps(video_path)
+
+    camstroke = Camstroke(video=video_path, fps=fps)
+    consecutive_streak = 0
 
     print("Video Size: %s x %s" % (vwidth, vheight))
     print("Video FPS: %s" % fps)
@@ -245,7 +245,7 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
             consecutive_streak = 0
 
     # save detection and isolation data to a file
-    # save_keystroke_data('keystrokes.csv', camstroke.get_all_data())
+    # save_keystroke_data('keystrokes.csv', camstroke.to_list())
 
     # save isolation bounding boxes to video format
     # frames = [f.kisolation_frame for f in camstroke.isolation_windows]

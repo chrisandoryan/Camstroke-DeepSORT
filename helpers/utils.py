@@ -1,13 +1,14 @@
 import pickle
 import pandas as pd
+import os
 
-def save_camstroke(camstroke_object, filename):
-    with open(filename, 'wb') as f:
+def save_camstroke(camstroke_object, save_path):
+    with open(save_path, 'wb') as f:
         pickle.dump(camstroke_object, f)
-    return filename
+    return save_path
 
-def load_camstroke(filename):
-    with open(filename, 'rb') as f:
+def load_camstroke(save_path):
+    with open(save_path, 'rb') as f:
         camstroke = pickle.load(f)
         return camstroke
 
@@ -16,7 +17,7 @@ def print_full(x):
     print(x)
     pd.reset_option('display.max_rows')
 
-def unique_array_dict(L, key):
+def keep_unique(L, key):
     return list({v[key]:v for v in L}.values())
 
 def calc_average(arr):
@@ -27,3 +28,7 @@ def print_info(s):
 
 def epoch_to_millis(time):
     return round(time * 1000)
+
+def make_dirs(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
