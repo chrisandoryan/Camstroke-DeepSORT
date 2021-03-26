@@ -52,7 +52,7 @@ def get_related_keystroke(keystroke_data, char):
     last = -1
     for i, k in enumerate(keystroke_data):
         if k['keytext'] == char:
-            if k['keyrelease'] == 0 and k['keyhold'] == 0 and k['keydelay'] == 0:
+            if k['keyrelease'] == 0:
                 last = i
     # return last element that satisfy the criterion
     return last
