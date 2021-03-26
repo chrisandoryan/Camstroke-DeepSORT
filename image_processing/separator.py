@@ -199,6 +199,7 @@ def solve_overlapping(candidate):
         dilated_im = cv2.dilate(clean_im, kernel, iterations=5)
 
         # perform more image enhancement
+        # final_im = cv2.GaussianBlur(dilated_im, (11, 11), 0)
         final_im = cv2.morphologyEx(dilated_im, cv2.MORPH_OPEN, kernel)
         final_im = cv2.threshold(cv2.medianBlur(dilated_im, 3), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
         final_im = cv2.morphologyEx(dilated_im, cv2.MORPH_CLOSE, kernel)

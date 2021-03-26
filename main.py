@@ -19,25 +19,27 @@ if __name__ == "__main__":
     EXPERIMENT_DIR = "./results/experiments/test_%d" % TEST_NUMBER
 
     args = parser.parse_args()
-    if args.mode == "record":
+    if args.mode == "keylogger":
         print_info("Preparing experiment directory at %s" % EXPERIMENT_DIR)
         make_dirs(EXPERIMENT_DIR)
 
         print_info("Firing up Keylogger engine")
         keylogger.run(save_path="%s/keylog_result.csv" % EXPERIMENT_DIR)
 
-        video_path = "../Datasets/keystroke_dynamic_forgery_3.mp4"
+    elif args.mode == "camstroke":
+        video_path = "../Datasets/keystroke_dynamic_forgery_4.mp4"
         camstroke = run_with_yolo(video_path, font_type, screen_size)
         save_camstroke(camstroke, save_path="%s/camstroke.pkl")
+        
+        keypoints = camstroke.get_kpoints()
+        dataset = preprocess(keypoints)
+        dataset.to_csv("%s/camstroke_kpoints.csv")
 
     elif args.mode == "analyze":
-        save_camstroke(camstroke, save_path="%s/camstroke.pkl")
-
+        camstroke = load_camstroke(save_path="%s/camstroke.pkl")
         keypoints = camstroke.get_kpoints()
+
         plotDDT(keypoints)
         plotDUT(keypoints)
 
-        dataset = preprocess(keypoints)
-        print_full(dataset)
-
-        dataset.to_csv("%s/camstroke_kpoints.csv")
+        

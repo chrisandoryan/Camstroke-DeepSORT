@@ -229,6 +229,7 @@ def run_with_yolo(video_path, font_type=constants.FIXEDWIDTH_FONT, screen_size=c
                         # display(kunit_image, "Final Result")
                         print("Timing Data: ", timing_data)
                         save_image(kunit_image, "results/keystroke_images/{}_{}.png".format(frame_id, timing_data['keytext']))
+                        save_image(isolation_window.to_image(), "results/keystroke_images/{}_{}_isolation.png".format(frame_id, timing_data['keytext']))
                         if separation_image is not None:
                             save_image(separation_image, "results/keystroke_images/{}_{}_separation.png".format(frame_id, timing_data['keytext']))
                             save_image(c['mask'], "results/keystroke_images/{}_{}_original.png".format(frame_id, timing_data['keytext']))
